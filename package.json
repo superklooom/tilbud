@@ -1,0 +1,14 @@
+{
+  "name": "tilbud-radar",
+  "version": "1.0.0",
+  "description": "Compare Danish supermarket offers (etilbudsavis.dk / Tjek data) by location",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "TILBUD_MOCK=1 node server.js",
+    "collect": "node scripts/collect.js",
+    "test": "node --test"
+  }
+}

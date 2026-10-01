@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f766e" />
+  <meta name="description" content="Compare this week's Danish supermarket offers near you." />
+  <title>Tilbud Radar</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand__logo">🏷️</span>
+      <div>
+        <h1>Tilbud Radar</h1>
+        <p>Every Danish supermarket offer this week, near you</p>
+      </div>
+    </div>
+
+    <form id="locationForm" class="location" autocomplete="off">
+      <div class="location__field">
+        <input id="addressInput" type="text" placeholder="Address, postcode, coordinates or a maps link…" aria-label="Address" />
+        <ul id="addressSuggestions" class="suggestions" hidden></ul>
+      </div>
+      <button type="button" id="gpsBtn" class="btn btn--ghost" title="Use my location">📍 My location</button>
+      <select id="radiusSelect" aria-label="Radius">
+        <option value="1000">1 km</option>
+        <option value="2000">2 km</option>
+        <option value="5000" selected>5 km</option>
+        <option value="10000">10 km</option>
+        <option value="25000">25 km</option>
+      </select>
+    </form>
+    <div id="locationStatus" class="location__status"></div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab is-active" data-tab="compare" role="tab">🔍 Compare prices</button>
+    <button class="tab" data-tab="deals" role="tab">🏷️ All deals</button>
+    <button class="tab" data-tab="catalogs" role="tab">📰 Catalogs</button>
+    <button class="tab" data-tab="list" role="tab">🛒 Shopping list</button>
+  </nav>
+
+  <main>
+    <!-- Compare -->
+    <section id="tab-compare" class="panel is-active">
+      <form id="searchForm" class="searchbar">
+        <input id="searchInput" type="search" placeholder="Search a product, e.g. coffee, kaffe, mælk, smør…" />
+        <button class="btn" type="submit">Search</button>
+      </form>
+      <div id="quickChips" class="chips"></div>
+      <div class="toolbar">
+        <label>Sort:
+          <select id="compareSort">
+            <option value="unit">Unit price (per kg / L)</option>
+            <option value="price">Price</option>
+            <option value="savings">Biggest discount</option>
+            <option value="dealer">Chain</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="cheapestPerChain" /> Cheapest per chain only</label>
+        <span id="compareCount" class="muted"></span>
+      </div>
+      <div id="compareDealerChips" class="chips chips--dealers"></div>
+      <div id="compareResults" class="grid"></div>
+    </section>
+
+    <!-- All deals -->
+    <section id="tab-deals" class="panel">
+      <div class="toolbar">
+        <input id="dealsFilter" type="search" placeholder="Filter the loaded deals…" />
+        <label>Sort:
+          <select id="dealsSort">
+            <option value="popular">Popular</option>
+            <option value="savings">Biggest discount</option>
+            <option value="price">Price</option>
+            <option value="unit">Unit price</option>
+          </select>
+        </label>
+        <span id="dealsCount" class="muted"></span>
+      </div>
+      <div id="dealsDealerChips" class="chips chips--dealers"></div>
+      <div id="dealsResults" class="grid"></div>
+      <div class="center"><button id="dealsMore" class="btn btn--ghost" hidden>Load more deals</button></div>
+    </section>
+
+    <!-- Catalogs -->
+    <section id="tab-catalogs" class="panel">
+      <div id="catalogResults" class="catalogs"></div>
+    </section>
+
+    <!-- Shopping list -->
+    <section id="tab-list" class="panel">
+      <form id="listForm" class="searchbar">
+        <input id="listInput" type="text" placeholder="Add a product, e.g. coffee or kaffe" />
+        <button class="btn" type="submit">Add</button>
+      </form>
+      <ul id="listItems" class="list"></ul>
+      <div class="center"><button id="listCompare" class="btn">Compare my basket across chains</button></div>
+      <div id="listResults"></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    Data: <a href="https://etilbudsavis.dk/" target="_blank" rel="noopener">eTilbudsavis</a> / Tjek ·
+    Maps: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a>
+  </footer>
+
+  <dialog id="viewer" class="viewer">
+    <div class="viewer__bar">
+      <strong id="viewerTitle"></strong>
+      <span id="viewerPage" class="muted"></span>
+      <button class="btn btn--ghost" id="viewerClose" aria-label="Close">✕</button>
+    </div>
+    <div class="viewer__body">
+      <button class="viewer__nav" id="viewerPrev" aria-label="Previous page">‹</button>
+      <img id="viewerImg" alt="" />
+      <button class="viewer__nav" id="viewerNext" aria-label="Next page">›</button>
+    </div>
+    <div id="viewerThumbs" class="viewer__thumbs"></div>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

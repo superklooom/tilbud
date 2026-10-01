@@ -1,0 +1,81 @@
+# Tilbud Radar 🏷️
+
+A web app that compares this week's Danish supermarket offers near you.
+Data comes from the **Tjek API** (`squid-api.tjek.com`), the public backend behind [etilbudsavis.dk](https://etilbudsavis.dk/).
+It is the same data as the weekly catalogs from Netto, føtex, Bilka, Lidl, REMA 1000, Coop 365, MENY, SuperBrugsen and others.
+
+**Web version:** https://superklooom.github.io/tilbud/ (once GitHub Pages is enabled, see below)
+
+## Features
+
+| Tab | What it does |
+|---|---|
+| 🔍 **Compare prices** | Search a product in English or Danish, or tap a quick button. Common English words such as "coffee" are translated to Danish automatically. Sort by price per kg/L, by price or by discount, or show only the cheapest offer per chain. |
+| 🏷️ **All deals** | Every offer from every chain nearby, with chain filters, quick text filter and sorting. |
+| 📰 **Catalogs** | This week's catalogs nearby, with a page viewer and the nearest store (distance and a Google Maps link). |
+| 🛒 **Shopping list** | Saved in your browser. One click compares the whole basket across chains: the best single chain, and the total if you buy each item where it is cheapest. |
+
+### Setting your location
+- Type an address or postcode (autocomplete via OpenStreetMap).
+- Tap **📍 My location** (GPS, which needs HTTPS or localhost).
+- Paste coordinates (`55.6761, 12.5683`) or a Google Maps / Apple Maps link.
+- **Share a location as a link:** `…/?lat=55.67&lng=12.56&r=5000` or `…/?q=<address or maps link>`.
+- Installed as an app on Android ("Add to Home screen"), it appears in the share sheet, so you can share a place from Google Maps straight into it.
+
+## Web version (GitHub Pages)
+
+The `public/` folder is a complete static site. In the browser it calls the Tjek API and OpenStreetMap directly, so no server is needed.
+The workflow `.github/workflows/pages.yml` publishes it on every push to `main`.
+
+One-time setup:
+1. Repo **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+2. Push to `main`, or run the workflow manually from the **Actions** tab.
+3. Open https://superklooom.github.io/tilbud/
+
+## Running locally (optional)
+
+Needs Node.js 18+. There are no dependencies to install.
+
+```bash
+cd tilbud
+npm start            # live data via a local proxy, http://localhost:3000
+npm run dev          # generated demo data (works offline)
+npm test             # unit tests
+```
+
+When the app is served by `server.js`, it uses the server's `/api` proxy, which caches responses for 10 minutes.
+On a static host it calls the APIs directly.
+
+Optional environment variables: `PORT` (default 3000), `TJEK_API_KEY` (sent as `X-Api-Key` if Tjek ever requires one), `TILBUD_MOCK=1` (demo data).
+
+## Weekly snapshots (price history)
+
+```bash
+npm run collect -- --address "Vesterbrogade 1, København" --radius 10000
+npm run collect -- --lat 55.6761 --lng 12.5683 --radius 10000
+```
+
+This saves every offer nearby to `data/offers-<year>-W<week>.json`. Run it weekly from cron, e.g. on Wednesday mornings:
+
+```
+0 7 * * 3  cd /path/to/tilbud && npm run collect -- --address "..." >> collect.log 2>&1
+```
+
+## Project layout
+
+```
+.
+├── public/             the web app (static, no build step)
+│   ├── core.js         Tjek API client, normalisation, unit prices (shared with Node)
+│   └── app.js          UI
+├── server.js           optional local server: static files + /api proxy
+├── lib.js              Node wrapper around public/core.js
+├── mock.js             demo data
+├── scripts/collect.js  weekly snapshot
+└── test/               unit tests
+```
+
+## Notes
+- The Tjek API is not officially documented for public use, and its format may change. All mapping lives in `public/core.js`.
+- Catalog products are in Danish. Danish search terms give the most results.
+- This is meant for personal use. Please respect the terms of etilbudsavis/Tjek and the OpenStreetMap Nominatim usage policy.
