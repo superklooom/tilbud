@@ -2,12 +2,13 @@
 // Works as a static site (GitHub Pages) by calling the Tjek API directly from the browser,
 // or through server.js's /api proxy when that is available.
 import { createApi } from './core.js';
+import { BRANDS, DA_TERMS, EN_TO_DA, englishFor, fold, toDanish } from './dictionary.js';
 
 const $ = (sel) => document.querySelector(sel);
 const LS_LOC = 'tilbud.location';
 const LS_LIST = 'tilbud.list';
 
-// English label -> Danish search term. Catalogs are in Danish, so English searches are translated.
+// Quick buttons: English label -> Danish search term.
 const PRODUCTS = [
   ['☕ Coffee', 'kaffe'], ['🥛 Milk', 'mælk'], ['🧈 Butter', 'smør'], ['🥚 Eggs', 'æg'],
   ['🍗 Chicken', 'kylling'], ['🥩 Minced beef', 'hakket oksekød'], ['🧀 Cheese', 'ost'], ['🍞 Bread', 'brød'],
@@ -15,15 +16,6 @@ const PRODUCTS = [
   ['🍺 Beer', 'øl'], ['🍷 Wine', 'vin'], ['🥤 Cola', 'cola'], ['🧻 Toilet paper', 'toiletpapir'],
   ['🥣 Yoghurt', 'yoghurt'], ['🍚 Rice', 'ris'], ['🥔 Potatoes', 'kartofler'], ['🍅 Tomatoes', 'tomater'],
 ];
-const EN_TO_DA = Object.fromEntries(PRODUCTS.map(([en, da]) => [en.replace(/^\S+\s/, '').toLowerCase(), da]));
-Object.assign(EN_TO_DA, {
-  'chicken breast': 'kyllingebryst', beef: 'oksekød', pork: 'svinekød', oil: 'olie', 'olive oil': 'olivenolie',
-  sugar: 'sukker', flour: 'mel', water: 'vand', diapers: 'bleer', nappies: 'bleer', chocolate: 'chokolade',
-  egg: 'æg', apple: 'æbler', banana: 'bananer', potato: 'kartofler', tomato: 'tomater', ham: 'skinke',
-  sausages: 'pølser', fish: 'fisk', juice: 'juice', tea: 'te', cereal: 'morgenmad', oats: 'havregryn',
-  'washing powder': 'vaskemiddel', detergent: 'vaskemiddel', onions: 'løg', carrots: 'gulerødder',
-  cucumber: 'agurk', strawberries: 'jordbær', 'ice cream': 'is', soda: 'sodavand', crisps: 'chips',
-});
 
 const state = {
   loc: null, // { lat, lng, label, radius }
@@ -211,6 +203,7 @@ async function loadArea() {
     updateStatus(`· ${catalogs.length} catalog${catalogs.length === 1 ? "" : "s"} nearby`);
     renderCatalogs();
     renderDealsDealerChips();
+    prefetchSuggestions();
   } catch (e) {
     $('#catalogResults').innerHTML = errorBox(e);
   }
@@ -279,16 +272,143 @@ function initLocation() {
   });
 }
 
+// ---------- autocomplete ----------
+// Suggestions come from three places: real offer names in the area, brands, and the EN<->DA dictionary.
+const offerIndex = new Map(); // folded name -> { label, dealers:Set, minPrice }
+
+// "Coca-Cola Zero 1,5 l" -> "Coca-Cola Zero": drop pack sizes so the suggestion works as a search term.
+const productName = (heading) => heading.split(/\s+/).filter((w) => !/\d/.test(w) && !/^(x|×|stk\.?|pk\.?|l|cl|ml|g|kg)$/i.test(w)).join(' ').trim();
+
+function indexOffers(offers) {
+  for (const o of offers) {
+    const label = productName(o.heading || '');
+    if (label.length < 3) continue;
+    const key = fold(label);
+    const e = offerIndex.get(key) || { label, dealers: new Set(), minPrice: Infinity };
+    e.dealers.add(o.dealer.name);
+    if (o.price != null) e.minPrice = Math.min(e.minPrice, o.price);
+    offerIndex.set(key, e);
+  }
+}
+
+async function prefetchSuggestions() {
+  // Same requests as the "All deals" tab, so they are shared through the cache.
+  for (const offset of [0, 100, 200]) {
+    try {
+      const rows = await api('/api/offers', { ...geoParams(), limit: 100, offset, dealer_ids: '' });
+      indexOffers(rows);
+      if (rows.length < 100) break;
+    } catch { break; }
+  }
+}
+
+const STATIC_SUGGESTIONS = [
+  ...BRANDS.map((b) => ({ label: b, query: b, hint: 'brand', rank: 1 })),
+  ...Object.entries(EN_TO_DA).map(([en, da]) => ({ label: en[0].toUpperCase() + en.slice(1), query: en, hint: `Danish: ${da}`, rank: 2 })),
+  ...[...new Set([...DA_TERMS, ...Object.values(EN_TO_DA)])].map((da) => ({ label: da, query: da, hint: englishFor(da) ? `English: ${englishFor(da)}` : 'Danish', rank: 2 })),
+].map((s) => ({ ...s, key: fold(s.label) }));
+
+function matchScore(key, q) {
+  if (key.startsWith(q)) return 0;
+  if (key.split(' ').some((w) => w.startsWith(q))) return 1;
+  if (q.length >= 3 && key.includes(q)) return 2;
+  return -1;
+}
+
+const offerHint = (e) => `on offer at ${[...e.dealers].slice(0, 2).join(', ')}${e.dealers.size > 2 ? ` +${e.dealers.size - 2}` : ''}${Number.isFinite(e.minPrice) ? ` · from ${money(e.minPrice)}` : ''}`;
+
+// Ranking: how well it matches, then products on offer nearby, then brands, then dictionary words.
+function suggest(text, limit = 8) {
+  const q = fold(text);
+  if (!q) return [];
+  const offers = [...offerIndex.entries()].map(([key, e]) => ({ key, label: e.label, query: e.label, hint: offerHint(e), rank: 0 }));
+  const statics = STATIC_SUGGESTIONS.map((s) => {
+    const e = offerIndex.get(s.key);
+    return e ? { ...s, hint: offerHint(e), rank: 0 } : s;
+  });
+  const seen = new Set();
+  return [...statics, ...offers]
+    .map((s) => ({ ...s, score: matchScore(s.key, q) }))
+    .filter((s) => s.score >= 0 && s.key !== q)
+    .sort((a, b) => a.score - b.score || a.rank - b.rank || a.label.length - b.label.length)
+    .filter((s) => !seen.has(s.key) && seen.add(s.key))
+    .slice(0, limit);
+}
+
+function highlight(label, text) {
+  const i = label.toLowerCase().indexOf(text.trim().toLowerCase());
+  if (i < 0 || !text.trim()) return esc(label);
+  const j = i + text.trim().length;
+  return `${esc(label.slice(0, i))}<mark>${esc(label.slice(i, j))}</mark>${esc(label.slice(j))}`;
+}
+
+function attachAutocomplete(input, onPick) {
+  const box = document.createElement('ul');
+  box.className = 'suggestions';
+  box.hidden = true;
+  box.setAttribute('role', 'listbox');
+  input.insertAdjacentElement('afterend', box);
+  input.setAttribute('autocomplete', 'off');
+  let items = [];
+  let active = -1;
+
+  const close = () => { box.hidden = true; active = -1; };
+  const render = () => {
+    box.innerHTML = items.map((s, i) => `<li role="option" data-i="${i}" class="${i === active ? 'is-active' : ''}">
+      <span class="sugg__label">${highlight(s.label, input.value)}</span><span class="sugg__hint">${s.hint}</span></li>`).join('');
+    box.hidden = !items.length;
+  };
+  const pick = (s) => { close(); input.value = s.query; onPick(s); };
+
+  input.addEventListener('input', () => {
+    items = input.value.trim().length >= 2 ? suggest(input.value) : [];
+    active = -1;
+    render();
+  });
+  input.addEventListener('keydown', (e) => {
+    if (box.hidden) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const n = items.length;
+      active = e.key === 'ArrowDown' ? (active + 1) % n : (active <= 0 ? n - 1 : active - 1);
+      render();
+    } else if (e.key === 'Enter' && active >= 0) {
+      e.preventDefault();
+      pick(items[active]);
+    } else if (e.key === 'Escape') {
+      e.preventDefault(); // a search input would otherwise clear its text
+      close();
+    }
+  });
+  input.addEventListener('blur', () => setTimeout(close, 150));
+  input.form?.addEventListener('submit', close);
+  box.addEventListener('mousedown', (e) => {
+    const li = e.target.closest('li');
+    if (!li) return;
+    e.preventDefault();
+    pick(items[Number(li.dataset.i)]);
+  });
+}
+
 // ---------- compare ----------
-function translateQuery(q, { notify = true } = {}) {
-  const da = EN_TO_DA[q.trim().toLowerCase()];
-  if (!da) return q;
-  if (notify) toast(`Searching for "${da}" (Danish for "${q.trim()}")`);
-  return da;
+// An English query is searched both translated to Danish and as typed (brand names, "pasta", …).
+function queriesFor(raw) {
+  const q = raw.trim();
+  const da = toDanish(q);
+  return da && fold(da) !== fold(q) ? [da, q] : [q];
+}
+
+async function searchOffers(raw) {
+  const lists = await Promise.all(queriesFor(raw).map((q, i) =>
+    api('/api/search', { q, ...geoParams() }).catch((e) => { if (i === 0) throw e; return []; })));
+  const seen = new Set();
+  const out = lists.flat().filter((o) => !seen.has(o.id) && seen.add(o.id));
+  indexOffers(out);
+  return out;
 }
 
 async function runSearch(raw) {
-  const q = translateQuery(raw);
+  const q = raw.trim();
   state.compare.query = q;
   $('#searchInput').value = q;
   if (!state.loc) {
@@ -297,7 +417,7 @@ async function runSearch(raw) {
   }
   $('#compareResults').innerHTML = placeholder();
   try {
-    state.compare.results = await api('/api/search', { q, ...geoParams() });
+    state.compare.results = await searchOffers(q);
     state.compare.dealers.clear();
     renderCompare();
   } catch (e) {
@@ -316,7 +436,9 @@ function renderCompare() {
     rows = [...best.values()].sort(SORTERS[sortKey]);
   }
   const bestId = [...rows].sort(SORTERS.unit)[0]?.id;
-  $('#compareCount').textContent = results.length ? `${rows.length} offers` : '';
+  const [first, ...rest] = queriesFor(state.compare.query);
+  const searched = rest.length ? ` · searched "${first}" (Danish) and "${rest[0]}"` : '';
+  $('#compareCount').textContent = results.length ? `${rows.length} offers${searched}` : '';
   $('#compareResults').innerHTML = rows.length
     ? rows.map((o) => offerCard(o, { best: o.id === bestId && rows.length > 1 })).join('')
     : `<div class="empty">No offers for "${esc(state.compare.query)}" nearby. Try another word (Danish works best) or a bigger radius.</div>`;
@@ -333,6 +455,7 @@ function initCompare() {
     const q = $('#searchInput').value.trim();
     if (q) runSearch(q);
   });
+  attachAutocomplete($('#searchInput'), (item) => runSearch(item.query));
   $('#compareSort').addEventListener('change', renderCompare);
   $('#cheapestPerChain').addEventListener('change', renderCompare);
   $('#compareResults').innerHTML = '<div class="empty">Search for a product or pick one above to compare prices across chains</div>';
@@ -376,6 +499,7 @@ async function loadDeals(reset = false) {
     });
     const seen = new Set(d.items.map((o) => o.id));
     d.items.push(...rows.filter((o) => !seen.has(o.id)));
+    indexOffers(rows);
     d.offset += rows.length;
     d.done = rows.length < limit;
     renderDeals();
@@ -425,7 +549,7 @@ function renderCatalogs() {
       : '';
     return `
     <div class="catalog" role="button" tabindex="0" data-catalog="${esc(c.id)}" data-page="1" data-title="${esc(c.label || c.dealer.name)}">
-      ${c.cover ? `<img loading="lazy" src="${esc(c.cover)}" alt="">` : ''}
+      <div class="catalog__cover">${c.cover ? `<img loading="lazy" src="${esc(c.cover)}" alt="">` : ''}</div>
       <div class="catalog__body">
         <div class="card__dealer"><span class="chip__dot" style="background:${esc(c.dealer.color)}"></span>${esc(c.dealer.name)}</div>
         <div class="card__desc">${esc(c.label)}</div>
@@ -494,9 +618,14 @@ function initViewer() {
 // ---------- shopping list ----------
 function renderList() {
   $('#listItems').innerHTML = state.list.length
-    ? state.list.map((item, i) => `<li><span dir="auto">${esc(item)}</span><button data-i="${i}" aria-label="Remove">✕</button></li>`).join('')
+    ? state.list.map((item, i) => `<li><span>${esc(item)}${listHint(item)}</span><button data-i="${i}" aria-label="Remove">✕</button></li>`).join('')
     : '<li class="muted">Your list is empty – add some products</li>';
   $('#listCompare').disabled = !state.list.length;
+}
+
+function listHint(item) {
+  const da = toDanish(item);
+  return da && fold(da) !== fold(item) ? ` <small class="muted">(${esc(da)})</small>` : '';
 }
 
 async function mapLimit(items, limit, fn) {
@@ -518,7 +647,7 @@ async function compareList() {
   }
   const items = state.list;
   $('#listResults').innerHTML = '<div class="empty">Comparing prices…</div>';
-  const results = await mapLimit(items, 4, (q) => api('/api/search', { q, ...geoParams() }));
+  const results = await mapLimit(items, 3, (q) => searchOffers(q));
 
   // cheapest[itemIndex][dealerName] = offer
   const cheapest = results.map((offers) => {
@@ -576,7 +705,7 @@ function initList() {
     e.preventDefault();
     const raw = $('#listInput').value.trim();
     if (!raw) return;
-    const q = translateQuery(raw, { notify: false });
+    const q = raw;
     if (!state.list.includes(q)) state.list.push(q);
     saveJson(LS_LIST, state.list);
     $('#listInput').value = '';
@@ -590,6 +719,10 @@ function initList() {
     renderList();
   });
   $('#listCompare').addEventListener('click', compareList);
+  attachAutocomplete($('#listInput'), (item) => {
+    $('#listInput').value = item.query;
+    $('#listForm').requestSubmit();
+  });
 }
 
 // ---------- tabs ----------

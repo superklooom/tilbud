@@ -108,6 +108,12 @@ main { max-width: 1200px; margin: 0 auto; padding: 16px; }
 
 .searchbar { display: flex; gap: 8px; margin-bottom: 12px; }
 .searchbar input { flex: 1; }
+.ac { position: relative; flex: 1; min-width: 0; display: flex; }
+.ac input { flex: 1; width: 100%; }
+.suggestions li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.sugg__label { font-weight: 500; }
+.sugg__label mark { background: none; color: var(--accent); font-weight: 700; }
+.sugg__hint { color: var(--muted); font-size: 12px; text-align: end; flex: none; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
 .toolbar input[type="search"] { flex: 1 1 220px; }
@@ -135,8 +141,9 @@ main { max-width: 1200px; margin: 0 auto; padding: 16px; }
   position: absolute; top: 8px; inset-inline-start: 8px; z-index: 1;
   background: var(--best); color: #fff; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 999px;
 }
-.card__img { aspect-ratio: 4 / 3; background: #fff; display: flex; align-items: center; justify-content: center; }
-.card__img img { max-width: 100%; max-height: 100%; object-fit: contain; }
+/* Fixed-ratio frame; the image is scaled down to fit entirely inside it (never cropped or stretched). */
+.card__img { position: relative; aspect-ratio: 1 / 1; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 32px; }
+.card__img img { position: absolute; inset: 8px; width: calc(100% - 16px); height: calc(100% - 16px); object-fit: contain; }
 .card__body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
 .card__dealer { display: flex; gap: 6px; align-items: center; font-size: 13px; font-weight: 600; }
 .card__title { font-weight: 600; direction: ltr; text-align: start; unicode-bidi: plaintext; }
@@ -157,7 +164,8 @@ main { max-width: 1200px; margin: 0 auto; padding: 16px; }
 .catalogs { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
 .catalog { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; cursor: pointer; box-shadow: var(--shadow); text-align: start; padding: 0; }
 .catalog:hover { border-color: var(--accent); }
-.catalog img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; display: block; background: var(--surface-2); }
+.catalog__cover { position: relative; aspect-ratio: 3 / 4; background: var(--surface-2); }
+.catalog__cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 .catalog__body { padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; }
 .catalog__store { font-size: 12px; color: var(--muted); }
 
@@ -180,8 +188,9 @@ tfoot td { font-weight: 700; }
 .viewer::backdrop { background: rgba(0, 0, 0, .7); }
 .viewer__bar { display: flex; gap: 12px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--border); }
 .viewer__bar strong { flex: 1; }
-.viewer__body { flex: 1; display: flex; align-items: center; min-height: 0; background: var(--surface-2); }
-.viewer__body img { flex: 1; min-width: 0; max-height: 100%; object-fit: contain; }
+.viewer__body { flex: 1; display: flex; align-items: stretch; min-height: 0; background: var(--surface-2); }
+.viewer__stage { position: relative; flex: 1; min-width: 0; }
+.viewer__stage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 .viewer__nav { background: none; border: 0; font-size: 44px; padding: 0 10px; cursor: pointer; color: var(--text); }
 .viewer__thumbs { display: flex; gap: 6px; overflow-x: auto; padding: 8px; border-top: 1px solid var(--border); }
 .viewer__thumbs img { height: 70px; border-radius: 4px; cursor: pointer; opacity: .6; border: 2px solid transparent; }
@@ -203,3 +212,8 @@ tfoot td { font-weight: 700; }
 
 .footer { text-align: center; color: var(--muted); font-size: 13px; padding: 24px 16px 32px; }
 .footer a { color: inherit; }
+
+@media (max-width: 560px) {
+  .suggestions li { flex-direction: column; align-items: stretch; gap: 2px; }
+  .sugg__hint { max-width: 100%; text-align: start; }
+}

@@ -48,7 +48,7 @@
     <!-- Compare -->
     <section id="tab-compare" class="panel is-active">
       <form id="searchForm" class="searchbar">
-        <input id="searchInput" type="search" placeholder="Search a product, e.g. coffee, kaffe, mælk, smør…" />
+        <div class="ac"><input id="searchInput" type="search" placeholder="Search in English or Danish, e.g. cheese, ost, Coca-Cola…" /></div>
         <button class="btn" type="submit">Search</button>
       </form>
       <div id="quickChips" class="chips"></div>
@@ -95,7 +95,7 @@
     <!-- Shopping list -->
     <section id="tab-list" class="panel">
       <form id="listForm" class="searchbar">
-        <input id="listInput" type="text" placeholder="Add a product, e.g. coffee or kaffe" />
+        <div class="ac"><input id="listInput" type="text" placeholder="Add a product in English or Danish, e.g. cheese or ost" /></div>
         <button class="btn" type="submit">Add</button>
       </form>
       <ul id="listItems" class="list"></ul>
@@ -117,7 +117,7 @@
     </div>
     <div class="viewer__body">
       <button class="viewer__nav" id="viewerPrev" aria-label="Previous page">‹</button>
-      <img id="viewerImg" alt="" />
+      <div class="viewer__stage"><img id="viewerImg" alt="" /></div>
       <button class="viewer__nav" id="viewerNext" aria-label="Next page">›</button>
     </div>
     <div id="viewerThumbs" class="viewer__thumbs"></div>
