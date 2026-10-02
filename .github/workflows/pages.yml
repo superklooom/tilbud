@@ -35,6 +35,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      # Pages lets browsers cache files for 10 minutes; versioned URLs make every deploy show up at once.
+      - name: Version asset URLs
+        run: |
+          V="${GITHUB_SHA::7}"
+          sed -i -E "s#(href|src)=\"([a-z]+\.(css|js|webmanifest|svg))\"#\1=\"\2?v=$V\"#g; s#build dev#build $V#" public/index.html
+          sed -i -E "s#from '\./([a-z]+\.js)'#from './\1?v=$V'#g" public/*.js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: public
