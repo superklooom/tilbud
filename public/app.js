@@ -412,17 +412,20 @@ async function runSearch(raw) {
   const q = raw.trim();
   state.compare.query = q;
   $('#searchInput').value = q;
+  $('#clearSearch').hidden = false;
   if (!state.loc) {
     $('#compareResults').innerHTML = needLocation();
     return;
   }
   $('#compareResults').innerHTML = placeholder();
   try {
-    state.compare.results = await searchOffers(q);
+    const results = await searchOffers(q);
+    if (state.compare.query !== q) return; // cleared or replaced while loading
+    state.compare.results = results;
     state.compare.dealers.clear();
     renderCompare();
   } catch (e) {
-    $('#compareResults').innerHTML = errorBox(e);
+    if (state.compare.query === q) $('#compareResults').innerHTML = errorBox(e);
   }
 }
 
@@ -477,7 +480,20 @@ function initCompare() {
   attachAutocomplete($('#searchInput'), (item) => runSearch(item.query));
   $('#compareSort').addEventListener('change', renderCompare);
   $('#cheapestPerChain').addEventListener('change', renderCompare);
+  $('#clearSearch').addEventListener('click', clearSearch);
+  // The browser's own "×" inside the search box clears the text; clear the results with it.
+  $('#searchInput').addEventListener('search', () => { if (!$('#searchInput').value) clearSearch(); });
+  clearSearch({ focus: false });
+}
+
+function clearSearch({ focus = true } = {}) {
+  state.compare = { query: '', results: [], dealers: new Set() };
+  $('#searchInput').value = '';
+  $('#compareCount').textContent = '';
+  $('#compareDealerChips').innerHTML = '';
+  $('#clearSearch').hidden = true;
   $('#compareResults').innerHTML = '<div class="empty">Search for a product or pick one above to compare prices across chains</div>';
+  if (focus) $('#searchInput').focus();
 }
 
 // ---------- all deals ----------
