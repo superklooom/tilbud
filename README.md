@@ -13,6 +13,7 @@ It is the same data as the weekly catalogs from Netto, føtex, Bilka, Lidl, REMA
 | 🔍 **Compare prices** | Search a product in English or Danish ("cheese" or "ost"), or tap a quick button. English searches are translated to Danish and searched in both languages. Suggestions appear as you type ("Coc" → Coca-Cola, Coca-Cola Zero…), taken from products on offer nearby, brands and the dictionary. Sort by price per kg/L, by price or by discount, or show only the cheapest offer per chain. |
 | 🏷️ **All deals** | Every offer from every chain nearby, with chain filters, quick text filter and sorting. |
 | 📰 **Catalogs** | This week's catalogs nearby, with a page viewer and the nearest store (distance and a Google Maps link). |
+| 🧺 **My Basket** | Tap **+ Add to basket** on any offer. The basket groups your picks by chain, shows when each offer ends (and warns when it ends today or tomorrow), lets you set quantities, and shows the total cost and savings at the top. Saved in your browser. |
 | 🛒 **Shopping list** | Saved in your browser. One click compares the whole basket across chains: the best single chain, and the total if you buy each item where it is cheapest. |
 
 ### Setting your location
@@ -69,6 +70,7 @@ This saves every offer nearby to `data/offers-<year>-W<week>.json`. Run it weekl
 │   ├── core.js         Tjek API client, normalisation, unit prices (shared with Node)
 │   ├── dictionary.js   English→Danish product words, Danish terms and brands
 │   ├── relevance.js    ranks the product itself above products that only mention it
+│   ├── basket.js       My Basket totals, grouping by chain and offer end dates
 │   └── app.js          UI
 ├── server.js           optional local server: static files + /api proxy
 ├── lib.js              Node wrapper around public/core.js

@@ -4,10 +4,12 @@
 import { createApi } from './core.js';
 import { BRANDS, DA_TERMS, EN_TO_DA, englishFor, fold, toDanish } from './dictionary.js';
 import { relevance, TIER } from './relevance.js';
+import { snapshot, summarize } from './basket.js';
 
 const $ = (sel) => document.querySelector(sel);
 const LS_LOC = 'tilbud.location';
 const LS_LIST = 'tilbud.list';
+const LS_BASKET = 'tilbud.basket';
 
 // Quick buttons: English label -> Danish search term.
 const PRODUCTS = [
@@ -25,6 +27,7 @@ const state = {
   compare: { query: '', results: [], dealers: new Set() },
   deals: { items: [], offset: 0, done: false, loading: false, dealers: new Set(), loaded: false },
   list: loadJson(LS_LIST, []),
+  basket: loadJson(LS_BASKET, []),
   activeTab: 'compare',
 };
 
@@ -125,7 +128,15 @@ const SORTERS = {
 };
 
 // ---------- rendering: offers ----------
+const shownOffers = new Map(); // id -> offer, so a card's basket button can find its offer
+
+function basketButton(id) {
+  const added = state.basket.some((b) => b.id === id);
+  return `<button class="card__add${added ? ' is-added' : ''}" data-basket="${esc(id)}" aria-pressed="${added}">${added ? '✓ In basket' : '+ Add to basket'}</button>`;
+}
+
 function offerCard(o, { best = false } = {}) {
+  shownOffers.set(o.id, o);
   const unit = o.unitPrice ? `${money(o.unitPrice.value)} / ${UNIT_LABEL[o.unitPrice.per] || o.unitPrice.per}` : '';
   const img = o.thumb || o.image;
   return `
@@ -144,6 +155,7 @@ function offerCard(o, { best = false } = {}) {
       ${unit ? `<div class="unit">${unit}</div>` : ''}
       ${o.runTill ? `<div class="dates">Valid ${dateRange(o.runFrom, o.runTill)}</div>` : ''}
       ${o.catalogId ? `<button class="card__link" data-catalog="${esc(o.catalogId)}" data-page="${o.catalogPage ?? 1}" data-title="${esc(o.dealer.name)}">📰 In catalog${o.catalogPage ? ` · p. ${o.catalogPage}` : ''}</button>` : ''}
+      ${basketButton(o.id)}
     </div>
   </article>`;
 }
@@ -764,6 +776,103 @@ function initList() {
   });
 }
 
+// ---------- my basket ----------
+function saveBasket() {
+  saveJson(LS_BASKET, state.basket);
+  const n = state.basket.reduce((sum, b) => sum + b.qty, 0);
+  $('#basketCount').textContent = n;
+  $('#basketCount').hidden = !n;
+  // Keep every visible card's button in sync.
+  document.querySelectorAll('[data-basket]').forEach((btn) => { btn.outerHTML = basketButton(btn.dataset.basket); });
+  if (state.activeTab === 'basket') renderBasket();
+}
+
+function toggleBasket(id) {
+  const i = state.basket.findIndex((b) => b.id === id);
+  if (i >= 0) {
+    state.basket.splice(i, 1);
+    toast('Removed from My Basket');
+  } else {
+    const offer = shownOffers.get(id);
+    if (!offer) return;
+    state.basket.push(snapshot(offer));
+    toast(`Added to My Basket · ${offer.dealer.name}`);
+  }
+  saveBasket();
+}
+
+function setQty(id, delta) {
+  const item = state.basket.find((b) => b.id === id);
+  if (!item) return;
+  item.qty = Math.max(1, Math.min(99, item.qty + delta));
+  saveBasket();
+}
+
+function renderBasket() {
+  const view = $('#basketView');
+  if (!state.basket.length) {
+    view.innerHTML = '<div class="empty">Your basket is empty.<br>Tap <strong>+ Add to basket</strong> on any offer in Compare prices or All deals.</div>';
+    return;
+  }
+  const s = summarize(state.basket);
+  const groups = s.groups.map((g) => `
+    <section class="basket-group">
+      <header class="basket-group__head">
+        <span class="card__dealer"><span class="chip__dot" style="background:${esc(g.dealer.color)}"></span>${esc(g.dealer.name)}</span>
+        <span class="muted">${g.count} item${g.count === 1 ? '' : 's'} · <strong>${money(g.subtotal)}</strong></span>
+      </header>
+      <ul class="basket-items">${g.items.map((i) => `
+        <li class="basket-item is-${i.status.level}">
+          <div class="basket-item__img">${i.thumb ? `<img loading="lazy" src="${esc(i.thumb)}" alt="">` : '🛒'}</div>
+          <div class="basket-item__info">
+            <div class="card__title">${esc(i.heading)}</div>
+            <div class="unit">${esc(i.quantity)}${i.quantity ? ' · ' : ''}${money(i.price)}${i.prePrice ? ` <span class="pre">${money(i.prePrice)}</span>` : ''}</div>
+            <div class="basket-item__ends">${i.status.level === 'soon' ? '⏰ ' : ''}${esc(i.status.label)}</div>
+          </div>
+          <div class="basket-item__side">
+            <div class="qty" role="group" aria-label="Quantity">
+              <button data-qty="${esc(i.id)}" data-delta="-1" aria-label="Fewer" ${i.qty <= 1 ? 'disabled' : ''}>−</button>
+              <span>${i.qty}</span>
+              <button data-qty="${esc(i.id)}" data-delta="1" aria-label="More">+</button>
+            </div>
+            <strong class="basket-item__line">${i.status.level === 'expired' ? '—' : money(i.line)}</strong>
+            <button class="basket-item__remove" data-remove="${esc(i.id)}" aria-label="Remove">Remove</button>
+          </div>
+        </li>`).join('')}
+      </ul>
+    </section>`).join('');
+  view.innerHTML = `
+    <div class="basket-summary">
+      <div>
+        <div class="basket-summary__label">Total</div>
+        <div class="basket-summary__total">${money(s.total)}</div>
+        <div class="muted">${s.count} item${s.count === 1 ? '' : 's'} from ${s.groups.length} chain${s.groups.length === 1 ? '' : 's'}${s.savings > 0 ? ` · you save ${money(s.savings)}` : ''}</div>
+        ${s.expired ? `<div class="basket-summary__warn">${s.expired} expired offer${s.expired === 1 ? ' is' : 's are'} not included in the total</div>` : ''}
+      </div>
+      <button class="btn btn--ghost" id="basketClear">Empty basket</button>
+    </div>
+    ${groups}`;
+}
+
+function initBasket() {
+  document.addEventListener('click', (e) => {
+    const add = e.target.closest('[data-basket]');
+    if (add) return toggleBasket(add.dataset.basket);
+    const qty = e.target.closest('[data-qty]');
+    if (qty) return setQty(qty.dataset.qty, Number(qty.dataset.delta));
+    const rm = e.target.closest('[data-remove]');
+    if (rm) {
+      state.basket = state.basket.filter((b) => b.id !== rm.dataset.remove);
+      return saveBasket();
+    }
+    if (e.target.closest('#basketClear') && confirm('Remove all products from your basket?')) {
+      state.basket = [];
+      saveBasket();
+    }
+  });
+  saveBasket();
+}
+
 // ---------- tabs ----------
 function initTabs() {
   document.querySelector('.tabs').addEventListener('click', (e) => {
@@ -774,6 +883,7 @@ function initTabs() {
     document.querySelectorAll('.panel').forEach((p) => p.classList.toggle('is-active', p.id === `tab-${t.dataset.tab}`));
     if (state.activeTab === 'deals' && !state.deals.loaded) loadDeals(true);
     if (state.activeTab === 'catalogs' && !state.loc) $('#catalogResults').innerHTML = needLocation();
+    if (state.activeTab === 'basket') renderBasket();
   });
 }
 
@@ -785,6 +895,7 @@ async function boot() {
   initDeals();
   initViewer();
   initList();
+  initBasket();
 
   // A location can be shared as a link: ?lat=..&lng=..  or ?q=<address or maps link>
   const params = new URLSearchParams(location.search);

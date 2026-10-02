@@ -42,6 +42,7 @@
     <button class="tab" data-tab="deals" role="tab">🏷️ All deals</button>
     <button class="tab" data-tab="catalogs" role="tab">📰 Catalogs</button>
     <button class="tab" data-tab="list" role="tab">🛒 Shopping list</button>
+    <button class="tab" data-tab="basket" role="tab">🧺 My Basket <span id="basketCount" class="tab__count" hidden></span></button>
   </nav>
 
   <main>
@@ -102,6 +103,11 @@
       <ul id="listItems" class="list"></ul>
       <div class="center"><button id="listCompare" class="btn">Compare my basket across chains</button></div>
       <div id="listResults"></div>
+    </section>
+
+    <!-- My Basket -->
+    <section id="tab-basket" class="panel">
+      <div id="basketView"></div>
     </section>
   </main>
 
