@@ -3,6 +3,7 @@
 // or through server.js's /api proxy when that is available.
 import { createApi } from './core.js';
 import { BRANDS, DA_TERMS, EN_TO_DA, englishFor, fold, toDanish } from './dictionary.js';
+import { relevance, TIER } from './relevance.js';
 
 const $ = (sel) => document.querySelector(sel);
 const LS_LOC = 'tilbud.location';
@@ -429,19 +430,37 @@ function renderCompare() {
   const { results, dealers } = state.compare;
   dealerChips($('#compareDealerChips'), results, dealers, renderCompare);
   const sortKey = $('#compareSort').value;
-  let rows = results.filter((o) => !dealers.size || dealers.has(o.dealer.name)).sort(SORTERS[sortKey]);
+  const terms = queriesFor(state.compare.query);
+  const tier = new Map(results.map((o) => [o.id, relevance(o, terms)]));
+  // The product itself first, then products that only mention it; the chosen sort applies within each group.
+  const byRelevance = (sorter) => (a, b) => tier.get(a.id) - tier.get(b.id) || sorter(a, b);
+  let rows = results.filter((o) => !dealers.size || dealers.has(o.dealer.name)).sort(byRelevance(SORTERS[sortKey]));
   if ($('#cheapestPerChain').checked) {
     const best = new Map();
-    for (const o of [...rows].sort(SORTERS.unit)) if (!best.has(o.dealer.name)) best.set(o.dealer.name, o);
-    rows = [...best.values()].sort(SORTERS[sortKey]);
+    for (const o of [...rows].sort(byRelevance(SORTERS.unit))) if (!best.has(o.dealer.name)) best.set(o.dealer.name, o);
+    rows = [...best.values()].sort(byRelevance(SORTERS[sortKey]));
   }
-  const bestId = [...rows].sort(SORTERS.unit)[0]?.id;
-  const [first, ...rest] = queriesFor(state.compare.query);
+  const topTier = Math.min(...rows.map((o) => tier.get(o.id)));
+  const bestId = rows.filter((o) => tier.get(o.id) === topTier).sort(SORTERS.unit)[0]?.id;
+  const [first, ...rest] = terms;
   const searched = rest.length ? ` · searched "${first}" (Danish) and "${rest[0]}"` : '';
   $('#compareCount').textContent = results.length ? `${rows.length} offers${searched}` : '';
-  $('#compareResults').innerHTML = rows.length
-    ? rows.map((o) => offerCard(o, { best: o.id === bestId && rows.length > 1 })).join('')
-    : `<div class="empty">No offers for "${esc(state.compare.query)}" nearby. Try another word (Danish works best) or a bigger radius.</div>`;
+  if (!rows.length) {
+    $('#compareResults').innerHTML = `<div class="empty">No offers for "${esc(state.compare.query)}" nearby. Try another word (Danish works best) or a bigger radius.</div>`;
+    return;
+  }
+  const sectionTitle = (t) => (t === TIER.MENTION
+    ? `Products that mention “${esc(first)}”`
+    : 'Other results');
+  let html = '';
+  let section = null;
+  for (const o of rows) {
+    const t = tier.get(o.id) <= TIER.PARTIAL ? 'main' : tier.get(o.id);
+    if (t !== section && t !== 'main') html += `<h3 class="grid__section">${sectionTitle(t)}</h3>`;
+    section = t;
+    html += offerCard(o, { best: o.id === bestId && rows.length > 1 });
+  }
+  $('#compareResults').innerHTML = html;
 }
 
 function initCompare() {
@@ -650,7 +669,11 @@ async function compareList() {
   const results = await mapLimit(items, 3, (q) => searchOffers(q));
 
   // cheapest[itemIndex][dealerName] = offer
-  const cheapest = results.map((offers) => {
+  const cheapest = results.map((all, i) => {
+    // Only count the product itself (olive oil), not products that merely mention it (tomatoes "with olive oil").
+    const terms = queriesFor(items[i]);
+    const matching = all.filter((o) => relevance(o, terms) <= TIER.PARTIAL);
+    const offers = matching.length ? matching : all;
     const m = new Map();
     for (const o of offers) {
       if (o.price == null) continue;

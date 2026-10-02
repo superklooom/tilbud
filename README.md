@@ -68,6 +68,7 @@ This saves every offer nearby to `data/offers-<year>-W<week>.json`. Run it weekl
 ├── public/             the web app (static, no build step)
 │   ├── core.js         Tjek API client, normalisation, unit prices (shared with Node)
 │   ├── dictionary.js   English→Danish product words, Danish terms and brands
+│   ├── relevance.js    ranks the product itself above products that only mention it
 │   └── app.js          UI
 ├── server.js           optional local server: static files + /api proxy
 ├── lib.js              Node wrapper around public/core.js
