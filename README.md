@@ -72,6 +72,7 @@ This saves every offer nearby to `data/offers-<year>-W<week>.json`. Run it weekl
 │   ├── translate.js    dictionary first, MyMemory online translation for unknown words
 │   ├── relevance.js    ranks the product itself above products that only mention it
 │   ├── basket.js       My Basket totals, grouping by chain and offer end dates
+│   ├── stores.js       which chains are supermarkets and which offers are non-food
 │   └── app.js          UI
 ├── server.js           optional local server: static files + /api proxy
 ├── lib.js              Node wrapper around public/core.js
@@ -82,6 +83,7 @@ This saves every offer nearby to `data/offers-<year>-W<week>.json`. Run it weekl
 
 ## Notes
 - The Tjek API is not officially documented for public use, and its format may change. All mapping lives in `public/core.js`.
+- eTilbudsavis also carries clothing, home and DIY chains, and hypermarkets sell non-food. Search results, All deals and the shopping-list comparison show supermarket groceries first; other stores and non-food items (detected by sizes, fabrics, bed dimensions and similar words) are behind a "Show results from other stores" button.
 - Catalog products are in Danish. Danish search terms give the most results.
 - English searches use the built-in dictionary (~360 words). Words it doesn't know are translated with the free [MyMemory](https://mymemory.translated.net/) API: only the search term is sent, and the result is cached in the browser.
 - This is meant for personal use. Please respect the terms of etilbudsavis/Tjek and the OpenStreetMap Nominatim usage policy.

@@ -6,6 +6,7 @@ import { BRANDS, DA_TERMS, EN_TO_DA, englishFor, fold } from './dictionary.js';
 import { danishFor, knownDanish } from './translate.js';
 import { relevance, TIER } from './relevance.js';
 import { snapshot, summarize } from './basket.js';
+import { isGrocery, isSupermarket } from './stores.js';
 
 const $ = (sel) => document.querySelector(sel);
 const LS_LOC = 'tilbud.location';
@@ -294,7 +295,7 @@ const offerIndex = new Map(); // folded name -> { label, dealers:Set, minPrice }
 const productName = (heading) => heading.split(/\s+/).filter((w) => !/\d/.test(w) && !/^(x|×|stk\.?|pk\.?|l|cl|ml|g|kg)$/i.test(w)).join(' ').trim();
 
 function indexOffers(offers) {
-  for (const o of offers) {
+  for (const o of offers.filter(isGrocery)) {
     const label = productName(o.heading || '');
     if (label.length < 3) continue;
     const key = fold(label);
@@ -309,7 +310,7 @@ async function prefetchSuggestions() {
   // Same requests as the "All deals" tab, so they are shared through the cache.
   for (const offset of [0, 100, 200]) {
     try {
-      const rows = await api('/api/offers', { ...geoParams(), limit: 100, offset, dealer_ids: '' });
+      const rows = await api('/api/offers', { ...geoParams(), limit: 100, offset, dealer_ids: supermarketDealerIds() });
       indexOffers(rows);
       if (rows.length < 100) break;
     } catch { break; }
@@ -443,6 +444,7 @@ async function runSearch(raw) {
     const results = await searchOffers(q);
     if (state.compare.query !== q) return; // cleared or replaced while loading
     state.compare.results = results;
+    state.compare.showOther = false;
     state.compare.dealers.clear();
     renderCompare();
   } catch (e) {
@@ -451,38 +453,54 @@ async function runSearch(raw) {
 }
 
 function renderCompare() {
-  const { results, dealers } = state.compare;
-  dealerChips($('#compareDealerChips'), results, dealers, renderCompare);
+  const { results, dealers, showOther } = state.compare;
+  // Supermarket groceries are the main results; other stores and non-food items wait behind a button.
+  const grocery = results.filter(isGrocery);
+  const others = results.filter((o) => !isGrocery(o));
+  dealerChips($('#compareDealerChips'), showOther ? results : grocery, dealers, renderCompare);
   const sortKey = $('#compareSort').value;
   const terms = queriesFor(state.compare.query);
   const tier = new Map(results.map((o) => [o.id, relevance(o, terms)]));
   // The product itself first, then products that only mention it; the chosen sort applies within each group.
   const byRelevance = (sorter) => (a, b) => tier.get(a.id) - tier.get(b.id) || sorter(a, b);
-  let rows = results.filter((o) => !dealers.size || dealers.has(o.dealer.name)).sort(byRelevance(SORTERS[sortKey]));
-  if ($('#cheapestPerChain').checked) {
-    const best = new Map();
-    for (const o of [...rows].sort(byRelevance(SORTERS.unit))) if (!best.has(o.dealer.name)) best.set(o.dealer.name, o);
-    rows = [...best.values()].sort(byRelevance(SORTERS[sortKey]));
-  }
+  const arrange = (list) => {
+    let rows = list.filter((o) => !dealers.size || dealers.has(o.dealer.name)).sort(byRelevance(SORTERS[sortKey]));
+    if ($('#cheapestPerChain').checked) {
+      const best = new Map();
+      for (const o of [...rows].sort(byRelevance(SORTERS.unit))) if (!best.has(o.dealer.name)) best.set(o.dealer.name, o);
+      rows = [...best.values()].sort(byRelevance(SORTERS[sortKey]));
+    }
+    return rows;
+  };
+  const rows = arrange(grocery);
+  const otherRows = arrange(others);
   const topTier = Math.min(...rows.map((o) => tier.get(o.id)));
   const bestId = rows.filter((o) => tier.get(o.id) === topTier).sort(SORTERS.unit)[0]?.id;
   const [first, ...rest] = terms;
   const searched = rest.length ? ` · searched "${first}" (Danish) and "${rest[0]}"` : '';
-  $('#compareCount').textContent = results.length ? `${rows.length} offers${searched}` : '';
-  if (!rows.length) {
+  $('#compareCount').textContent = results.length ? `${rows.length} supermarket offer${rows.length === 1 ? '' : 's'}${searched}` : '';
+  if (!rows.length && !otherRows.length) {
     $('#compareResults').innerHTML = `<div class="empty">No offers for "${esc(state.compare.query)}" nearby. Try another word (Danish works best) or a bigger radius.</div>`;
     return;
   }
   const sectionTitle = (t) => (t === TIER.MENTION
     ? `Products that mention “${esc(first)}”`
     : 'Other results');
-  let html = '';
+  let html = rows.length ? '' : `<div class="empty">No supermarket offers for "${esc(state.compare.query)}" nearby.</div>`;
   let section = null;
   for (const o of rows) {
     const t = tier.get(o.id) <= TIER.PARTIAL ? 'main' : tier.get(o.id);
     if (t !== section && t !== 'main') html += `<h3 class="grid__section">${sectionTitle(t)}</h3>`;
     section = t;
     html += offerCard(o, { best: o.id === bestId && rows.length > 1 });
+  }
+  if (otherRows.length) {
+    const n = otherRows.length;
+    html += `<div class="grid__section other-toggle">
+      <button class="btn btn--ghost" id="toggleOther" aria-expanded="${showOther}">${showOther ? 'Hide' : 'Show'} ${n} result${n === 1 ? '' : 's'} from other stores &amp; non-food</button>
+      <span class="muted">Clothing, home and other items that matched your search</span>
+    </div>`;
+    if (showOther) html += otherRows.map((o) => offerCard(o)).join('');
   }
   $('#compareResults').innerHTML = html;
 }
@@ -502,13 +520,18 @@ function initCompare() {
   $('#compareSort').addEventListener('change', renderCompare);
   $('#cheapestPerChain').addEventListener('change', renderCompare);
   $('#clearSearch').addEventListener('click', clearSearch);
+  $('#compareResults').addEventListener('click', (e) => {
+    if (!e.target.closest('#toggleOther')) return;
+    state.compare.showOther = !state.compare.showOther;
+    renderCompare();
+  });
   // The browser's own "×" inside the search box clears the text; clear the results with it.
   $('#searchInput').addEventListener('search', () => { if (!$('#searchInput').value) clearSearch(); });
   clearSearch({ focus: false });
 }
 
 function clearSearch({ focus = true } = {}) {
-  state.compare = { query: '', results: [], dealers: new Set() };
+  state.compare = { query: '', results: [], dealers: new Set(), showOther: false };
   $('#searchInput').value = '';
   $('#compareCount').textContent = '';
   $('#compareDealerChips').innerHTML = '';
@@ -520,11 +543,17 @@ function clearSearch({ focus = true } = {}) {
 // ---------- all deals ----------
 function renderDealsDealerChips() {
   // Chips come from the catalogs in the area so every chain is selectable before offers load.
-  const fake = state.catalogs.map((c) => ({ dealer: c.dealer, dealerId: c.dealerId }));
+  const includeOther = $('#dealsOther').checked;
+  const fake = state.catalogs.filter((c) => includeOther || isSupermarket(c.dealer.name)).map((c) => ({ dealer: c.dealer, dealerId: c.dealerId }));
   const seen = new Set();
   const unique = fake.filter((o) => !seen.has(o.dealer.name) && seen.add(o.dealer.name));
   dealerChips($('#dealsDealerChips'), unique, state.deals.dealers, () => loadDeals(true));
   $('#dealsDealerChips').querySelectorAll('small').forEach((s) => s.remove());
+}
+
+// Supermarket dealers nearby, so "All deals" pages are filled with grocery offers rather than furniture.
+function supermarketDealerIds() {
+  return [...new Set(state.catalogs.filter((c) => isSupermarket(c.dealer.name)).map((c) => c.dealerId).filter(Boolean))].join(',');
 }
 
 function dealerIdsFor(names) {
@@ -551,7 +580,7 @@ async function loadDeals(reset = false) {
       ...geoParams(),
       limit,
       offset: d.offset,
-      dealer_ids: d.dealers.size ? dealerIdsFor(d.dealers) : '',
+      dealer_ids: d.dealers.size ? dealerIdsFor(d.dealers) : ($('#dealsOther').checked ? '' : supermarketDealerIds()),
     });
     const seen = new Set(d.items.map((o) => o.id));
     d.items.push(...rows.filter((o) => !seen.has(o.id)));
@@ -570,7 +599,9 @@ async function loadDeals(reset = false) {
 function renderDeals() {
   const d = state.deals;
   const words = $('#dealsFilter').value.toLowerCase().split(/\s+/).filter(Boolean);
+  const includeOther = $('#dealsOther').checked;
   const rows = d.items
+    .filter((o) => includeOther || isGrocery(o))
     .filter((o) => !d.dealers.size || d.dealers.has(o.dealer.name))
     .filter((o) => words.every((w) => `${o.heading} ${o.description} ${o.dealer.name}`.toLowerCase().includes(w)));
   const sorted = $('#dealsSort').value === 'popular' ? rows : [...rows].sort(SORTERS[$('#dealsSort').value]);
@@ -582,6 +613,7 @@ function renderDeals() {
 function initDeals() {
   $('#dealsFilter').addEventListener('input', renderDeals);
   $('#dealsSort').addEventListener('change', renderDeals);
+  $('#dealsOther').addEventListener('change', () => { state.deals.dealers.clear(); loadDeals(true); });
   $('#dealsMore').addEventListener('click', () => loadDeals());
 }
 
@@ -598,12 +630,15 @@ function renderCatalogs() {
     $('#catalogResults').innerHTML = '<div class="empty">No catalogs found nearby. Try a bigger radius.</div>';
     return;
   }
-  $('#catalogResults').innerHTML = state.catalogs.map((c) => {
+  const ordered = [...state.catalogs.filter((c) => isSupermarket(c.dealer.name)), ...state.catalogs.filter((c) => !isSupermarket(c.dealer.name))];
+  let otherHeading = false;
+  $('#catalogResults').innerHTML = ordered.map((c) => {
+    const heading = !otherHeading && !isSupermarket(c.dealer.name) ? (otherHeading = true, '<h3 class="grid__section">Other stores</h3>') : '';
     const s = nearestStore(c.dealerId);
     const store = s
       ? `<a class="catalog__store" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}" onclick="event.stopPropagation()">📍 ${esc(s.street)}, ${esc(s.city)} · ${s.km.toFixed(1)} km</a>`
       : '';
-    return `
+    return `${heading}
     <div class="catalog" role="button" tabindex="0" data-catalog="${esc(c.id)}" data-page="1" data-title="${esc(c.label || c.dealer.name)}">
       <div class="catalog__cover">${c.cover ? `<img loading="lazy" src="${esc(c.cover)}" alt="">` : ''}</div>
       <div class="catalog__body">
@@ -709,8 +744,9 @@ async function compareList() {
   const cheapest = results.map((all, i) => {
     // Only count the product itself (olive oil), not products that merely mention it (tomatoes "with olive oil").
     const terms = queriesFor(items[i]);
-    const matching = all.filter((o) => relevance(o, terms) <= TIER.PARTIAL);
-    const offers = matching.length ? matching : all;
+    const groceries = all.filter(isGrocery);
+    const matching = groceries.filter((o) => relevance(o, terms) <= TIER.PARTIAL);
+    const offers = matching.length ? matching : groceries;
     const m = new Map();
     for (const o of offers) {
       if (o.price == null) continue;
