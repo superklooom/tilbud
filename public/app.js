@@ -954,13 +954,13 @@ function basketImage() {
   const s = summarize(state.basket);
   const W = 1080;
   const PAD = 64;
-  const font = (size, weight = 400) => `${weight} ${size}px system-ui, -apple-system, "Segoe UI", sans-serif`;
+  const font = (size, weight = 400) => `${weight} ${size}px "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif`;
   const rows = [];
   for (const g of s.groups) {
     rows.push({ type: 'group', g });
     for (const i of g.items) rows.push({ type: 'item', i });
   }
-  const H = 330 + rows.reduce((h, r) => h + (r.type === 'group' ? 96 : 92), 0) + 110;
+  const H = 380 + rows.reduce((h, r) => h + (r.type === 'group' ? 96 : 92), 0) + 110;
   const canvas = document.createElement('canvas');
   canvas.width = W;
   canvas.height = H;
@@ -971,18 +971,30 @@ function basketImage() {
     while (t.length > 1 && c.measureText(`${t}…`).width > max) t = t.slice(0, -1);
     return `${t}…`;
   };
-  c.fillStyle = '#f4f6f5';
+  c.fillStyle = '#eef1f8';
   c.fillRect(0, 0, W, H);
-  c.fillStyle = '#0f766e';
-  c.font = font(30, 700);
-  c.fillText('Tilbud Radar · My basket', PAD, 90);
-  c.fillStyle = '#1c2524';
-  c.font = font(84, 800);
-  c.fillText(money(s.total), PAD, 190);
-  c.fillStyle = '#64716f';
+  c.fillStyle = '#0b1533';
+  c.fillRect(0, 0, W, 130);
+  c.fillStyle = '#ffffff';
+  c.font = font(34, 800);
+  c.fillText('Tilbud Radar · My basket', PAD, 80);
+  c.font = font(80, 800);
+  const totalText = money(s.total);
+  const tw = c.measureText(totalText).width;
+  c.save();
+  c.translate(PAD, 236);
+  c.rotate(-0.025);
+  c.fillStyle = '#ffd400';
+  c.beginPath();
+  c.roundRect(-14, -74, tw + 28, 96, 12);
+  c.fill();
+  c.fillStyle = '#0b1533';
+  c.fillText(totalText, 0, 0);
+  c.restore();
+  c.fillStyle = '#56607a';
   c.font = font(32);
-  c.fillText(`${s.count} item${s.count === 1 ? '' : 's'} from ${s.groups.length} chain${s.groups.length === 1 ? '' : 's'}${s.savings > 0 ? ` · you save ${money(s.savings)}` : ''}`, PAD, 245);
-  let y = 330;
+  c.fillText(`${s.count} item${s.count === 1 ? '' : 's'} from ${s.groups.length} chain${s.groups.length === 1 ? '' : 's'}${s.savings > 0 ? ` · you save ${money(s.savings)}` : ''}`, PAD, 306);
+  let y = 380;
   for (const r of rows) {
     if (r.type === 'group') {
       y += 24;
@@ -990,19 +1002,19 @@ function basketImage() {
       c.beginPath();
       c.arc(PAD + 14, y + 22, 14, 0, Math.PI * 2);
       c.fill();
-      c.fillStyle = '#1c2524';
-      c.font = font(38, 700);
+      c.fillStyle = '#0b1533';
+      c.font = font(38, 800);
       c.fillText(fit(r.g.dealer.name, 600), PAD + 44, y + 36);
       c.textAlign = 'right';
       c.fillText(money(r.g.subtotal), W - PAD, y + 36);
       c.textAlign = 'left';
-      c.fillStyle = '#dbe2e0';
+      c.fillStyle = '#d9deea';
       c.fillRect(PAD, y + 62, W - PAD * 2, 2);
       y += 72;
     } else {
       const i = r.i;
       const expired = i.status.level === 'expired';
-      c.fillStyle = expired ? '#9aa5a3' : '#1c2524';
+      c.fillStyle = expired ? '#9aa5c4' : '#0b1533';
       c.font = font(32, 600);
       const price = expired ? 'ended' : money(i.line);
       c.textAlign = 'right';
@@ -1011,18 +1023,19 @@ function basketImage() {
       c.textAlign = 'left';
       c.fillText(fit(`${i.qty > 1 ? `${i.qty} × ` : ''}${i.heading}`, W - PAD * 2 - priceW - 40), PAD, y + 34);
       c.font = font(26);
-      c.fillStyle = i.status.level === 'soon' || expired ? '#dc2626' : '#64716f';
+      c.fillStyle = i.status.level === 'soon' || expired ? '#e11d48' : '#56607a';
       c.fillText(fit([i.quantity, i.status.level === 'unknown' ? '' : i.status.label].filter(Boolean).join(' · '), W - PAD * 2), PAD, y + 72);
       y += 92;
     }
   }
-  c.fillStyle = '#64716f';
+  c.fillStyle = '#56607a';
   c.font = font(26);
   c.fillText(`${location.host}${location.pathname}`.replace(/\/$/, ''), PAD, H - 50);
   return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
 }
 
 async function saveImage() {
+  try { await Promise.all([document.fonts.load('800 80px "Plus Jakarta Sans"'), document.fonts.load('400 26px "Plus Jakarta Sans"')]); } catch { /* fall back to system font */ }
   const blob = await basketImage();
   const file = new File([blob], 'tilbud-basket.png', { type: 'image/png' });
   if (navigator.canShare?.({ files: [file] })) {
