@@ -2,7 +2,8 @@
 // Works as a static site (GitHub Pages) by calling the Tjek API directly from the browser,
 // or through server.js's /api proxy when that is available.
 import { createApi } from './core.js';
-import { BRANDS, DA_TERMS, EN_TO_DA, englishFor, fold, toDanish } from './dictionary.js';
+import { BRANDS, DA_TERMS, EN_TO_DA, englishFor, fold } from './dictionary.js';
+import { danishFor, knownDanish } from './translate.js';
 import { relevance, TIER } from './relevance.js';
 import { snapshot, summarize } from './basket.js';
 
@@ -405,15 +406,23 @@ function attachAutocomplete(input, onPick) {
 
 // ---------- compare ----------
 // An English query is searched both translated to Danish and as typed (brand names, "pasta", …).
+// Uses the dictionary or an online translation fetched earlier by searchOffers().
 function queriesFor(raw) {
   const q = raw.trim();
-  const da = toDanish(q);
+  const da = knownDanish(q);
   return da && fold(da) !== fold(q) ? [da, q] : [q];
 }
 
 async function searchOffers(raw) {
-  const lists = await Promise.all(queriesFor(raw).map((q, i) =>
-    api('/api/search', { q, ...geoParams() }).catch((e) => { if (i === 0) throw e; return []; })));
+  const typed = raw.trim();
+  const search = (q) => api('/api/search', { q, ...geoParams() });
+  // Search what was typed right away, while words missing from the dictionary are translated online.
+  const typedResults = search(typed);
+  typedResults.catch(() => {});
+  await danishFor(typed);
+  const queries = queriesFor(typed);
+  const lists = await Promise.all(queries.map((q, i) =>
+    (q === typed ? typedResults : search(q)).catch((e) => { if (i === 0) throw e; return []; })));
   const seen = new Set();
   const out = lists.flat().filter((o) => !seen.has(o.id) && seen.add(o.id));
   indexOffers(out);
@@ -671,7 +680,7 @@ function renderList() {
 }
 
 function listHint(item) {
-  const da = toDanish(item);
+  const da = knownDanish(item);
   return da && fold(da) !== fold(item) ? ` <small class="muted">(${esc(da)})</small>` : '';
 }
 
@@ -761,6 +770,7 @@ function initList() {
     saveJson(LS_LIST, state.list);
     $('#listInput').value = '';
     renderList();
+    danishFor(q).then((da) => { if (da) renderList(); }); // show an online translation once it arrives
   });
   $('#listItems').addEventListener('click', (e) => {
     const b = e.target.closest('button[data-i]');

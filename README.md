@@ -69,6 +69,7 @@ This saves every offer nearby to `data/offers-<year>-W<week>.json`. Run it weekl
 ├── public/             the web app (static, no build step)
 │   ├── core.js         Tjek API client, normalisation, unit prices (shared with Node)
 │   ├── dictionary.js   English→Danish product words, Danish terms and brands
+│   ├── translate.js    dictionary first, MyMemory online translation for unknown words
 │   ├── relevance.js    ranks the product itself above products that only mention it
 │   ├── basket.js       My Basket totals, grouping by chain and offer end dates
 │   └── app.js          UI
@@ -82,4 +83,5 @@ This saves every offer nearby to `data/offers-<year>-W<week>.json`. Run it weekl
 ## Notes
 - The Tjek API is not officially documented for public use, and its format may change. All mapping lives in `public/core.js`.
 - Catalog products are in Danish. Danish search terms give the most results.
+- English searches use the built-in dictionary (~360 words). Words it doesn't know are translated with the free [MyMemory](https://mymemory.translated.net/) API: only the search term is sent, and the result is cached in the browser.
 - This is meant for personal use. Please respect the terms of etilbudsavis/Tjek and the OpenStreetMap Nominatim usage policy.

@@ -11,10 +11,14 @@ const stem = (w) => (w.length > 4 ? w.replace(/(erne|ene|er|e|r)$/, '') : w);
 
 // Danish compounds put the actual product last: "jomfruolivenolie" is olive oil, "smøreost" is cheese.
 // A prefix of at least 3 letters avoids false hits like "frost" for "ost".
+// Plural/definite endings after a singular search term: "valnød" -> "valnødder", "tomat" -> "tomaterne".
+const ENDINGS = '(?:d?(?:er|erne|e|ene)|n|en|et|s)?';
+
 function isHead(word, term) {
   const w = stem(word);
   const t = stem(term);
-  return w === t || (w.endsWith(t) && w.length - t.length >= 3);
+  if (w === t || (w.endsWith(t) && w.length - t.length >= 3)) return true;
+  return new RegExp(`^(?:[a-z0-9]{3,})?${term.replace(/[^a-z0-9]/g, '')}${ENDINGS}$`).test(word);
 }
 
 function headingTier(headWords, term) {

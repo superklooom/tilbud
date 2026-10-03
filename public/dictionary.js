@@ -14,7 +14,7 @@ export const EN_TO_DA = {
   bacon: 'bacon', sausage: 'pølse', sausages: 'pølser', 'hot dog': 'hotdog', 'meat balls': 'frikadeller',
   meatballs: 'frikadeller', 'liver pate': 'leverpostej', 'cold cuts': 'pålæg', salami: 'salami', duck: 'and',
   fish: 'fisk', salmon: 'laks', 'smoked salmon': 'røget laks', cod: 'torsk', tuna: 'tun', shrimp: 'rejer',
-  prawns: 'rejer', herring: 'sild', mackerel: 'makrel', 'fish fingers': 'fiskefrikadeller',
+  prawns: 'rejer', herring: 'sild', mackerel: 'makrel', 'fish fingers': 'fiskepinde', 'fish cakes': 'fiskefrikadeller',
   // bakery & dry goods
   bread: 'brød', 'rye bread': 'rugbrød', 'white bread': 'franskbrød', rolls: 'boller', buns: 'boller',
   toast: 'toastbrød', croissant: 'croissant', cake: 'kage', cookies: 'småkager', biscuits: 'kiks', crackers: 'knækbrød',
@@ -54,6 +54,38 @@ export const EN_TO_DA = {
   shampoo: 'shampoo', conditioner: 'balsam', soap: 'sæbe', 'shower gel': 'showergel', toothpaste: 'tandpasta',
   toothbrush: 'tandbørste', deodorant: 'deodorant', 'razor': 'barberskraber', diapers: 'bleer', nappies: 'bleer',
   'baby food': 'babymad', 'wet wipes': 'vådservietter', 'cat food': 'kattemad', 'dog food': 'hundemad', flowers: 'blomster',
+  // nuts, seeds & dried fruit (singular stems like "valnød" also match "valnødder" in catalog search)
+  walnut: 'valnød', walnuts: 'valnød', hazelnut: 'hasselnød', hazelnuts: 'hasselnød', cashew: 'cashewnød',
+  cashews: 'cashewnød', 'cashew nuts': 'cashewnød', peanut: 'peanuts', peanuts: 'peanuts', pecan: 'pekannød',
+  pecans: 'pekannød', pistachio: 'pistacie', pistachios: 'pistacie', macadamia: 'macadamia', 'brazil nuts': 'paranød',
+  almond: 'mandler', 'mixed nuts': 'nøddeblanding', seeds: 'kerner', 'sunflower seeds': 'solsikkekerner',
+  'pumpkin seeds': 'græskarkerner', 'chia seeds': 'chiafrø', 'flax seeds': 'hørfrø', sesame: 'sesam', dates: 'dadler',
+  figs: 'figner', prunes: 'svesker', apricots: 'abrikoser', 'dried fruit': 'tørret frugt', coconut: 'kokos',
+  // more cheese & dairy
+  mozzarella: 'mozzarella', feta: 'feta', parmesan: 'parmesan', brie: 'brie', cheddar: 'cheddar', 'blue cheese': 'blåskimmelost',
+  'goat cheese': 'gedeost', 'cottage cheese': 'hytteost', quark: 'kvark', 'oat milk': 'havredrik', 'almond milk': 'mandeldrik',
+  'soy milk': 'sojadrik', 'plant milk': 'plantedrik', 'cream cheese spread': 'smøreost',
+  // more meat & fish
+  ribs: 'ribben', 'roast pork': 'flæskesteg', 'pork chops': 'koteletter', tenderloin: 'mørbrad', 'pork tenderloin': 'svinemørbrad',
+  'beef tenderloin': 'oksemørbrad', 'minced chicken': 'hakket kylling', 'whole chicken': 'hel kylling', 'chicken wings': 'kyllingevinger',
+  liver: 'lever', 'roast beef': 'roastbeef', 'smoked ham': 'hamburgerryg', crab: 'krabbe', mussels: 'muslinger', plaice: 'rødspætte',
+  // pantry
+  chickpeas: 'kikærter', olives: 'oliven', capers: 'kapers', pesto: 'pesto', hummus: 'hummus', tofu: 'tofu', 'maple syrup': 'ahornsirup',
+  syrup: 'sirup', cinnamon: 'kanel', vanilla: 'vanilje', cocoa: 'kakao', marzipan: 'marcipan', pancakes: 'pandekager', waffles: 'vafler',
+  tortillas: 'tortilla', wraps: 'wraps', 'soy sauce': 'soja', 'curry': 'karry', 'stock cubes': 'bouillon', broth: 'bouillon',
+  'tinned fish': 'fiskekonserves', 'canned tuna': 'tun på dåse', crispbread: 'knækbrød', granola: 'granola', 'cake mix': 'kagemix',
+  // more fruit & vegetables
+  asparagus: 'asparges', aubergine: 'aubergine', eggplant: 'aubergine', beetroot: 'rødbeder', beets: 'rødbeder', celery: 'selleri',
+  ginger: 'ingefær', chili: 'chili', radishes: 'radiser', pumpkin: 'græskar', kale: 'grønkål', 'brussels sprouts': 'rosenkål',
+  'green beans': 'bønner', parsley: 'persille', dill: 'dild', basil: 'basilikum', rocket: 'rucola', arugula: 'rucola',
+  'spring onions': 'forårsløg', 'red onions': 'rødløg', blackberries: 'brombær', peaches: 'ferskner', nectarines: 'nektariner',
+  clementines: 'klementiner', mandarins: 'mandariner', grapefruit: 'grapefrugt', pomegranate: 'granatæble', 'passion fruit': 'passionsfrugt',
+  rhubarb: 'rabarber', berries: 'bær', cranberries: 'tranebær', 'cherry tomatoes': 'cherrytomater', apricot: 'abrikoser',
+  // more household & personal care
+  'hand soap': 'håndsæbe', sponges: 'svampe', 'freezer bags': 'fryseposer', 'baking paper': 'bagepapir', matches: 'tændstikker',
+  charcoal: 'grillkul', 'cotton pads': 'vatrondeller', 'sanitary pads': 'bind', tampons: 'tamponer', sunscreen: 'solcreme',
+  'body lotion': 'bodylotion', 'hair dye': 'hårfarve', mouthwash: 'mundskyl', 'dental floss': 'tandtråd', vitamins: 'vitaminer',
+  'baby formula': 'modermælkserstatning', 'cat litter': 'kattegrus',
 };
 
 // Danish product words people commonly search for (shown as suggestions with an English hint).
@@ -99,21 +131,26 @@ function lookup(word) {
   return FOLDED_EN.get(word) ?? (word.endsWith('s') ? FOLDED_EN.get(word.slice(0, -1)) : undefined);
 }
 
-// "cheese" -> "ost", "red wine" -> "rødvin", "organic milk" -> "organic mælk". Returns null when nothing translates.
-export function toDanish(query) {
+// { text, complete }: complete is false when some words stayed English ("spring water" -> "spring vand").
+export function toDanishDetailed(query) {
   const f = fold(query);
   if (!f) return null;
   const whole = lookup(f);
-  if (whole) return whole;
+  if (whole) return { text: whole, complete: true };
   const words = f.split(' ');
   let changed = false;
+  let complete = true;
   const out = [];
   for (let i = 0; i < words.length; i++) {
     const pair = i + 1 < words.length && lookup(`${words[i]} ${words[i + 1]}`);
     if (pair) { out.push(pair); i++; changed = true; continue; }
     const single = lookup(words[i]);
     if (single) changed = true;
+    else complete = false;
     out.push(single || words[i]);
   }
-  return changed ? out.join(' ') : null;
+  return changed ? { text: out.join(' '), complete } : null;
 }
+
+// "cheese" -> "ost", "red wine" -> "rødvin", "organic milk" -> "organic mælk". Returns null when nothing translates.
+export const toDanish = (query) => toDanishDetailed(query)?.text ?? null;
