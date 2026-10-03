@@ -132,6 +132,31 @@
     <div id="viewerThumbs" class="viewer__thumbs"></div>
   </dialog>
 
+  <dialog id="shareDialog" class="sheet" aria-labelledby="shareTitle">
+    <div class="sheet__head">
+      <strong id="shareTitle">Share your basket</strong>
+      <button class="btn btn--ghost" id="shareClose" aria-label="Close">✕</button>
+    </div>
+    <textarea id="shareText" readonly rows="10" aria-label="Message preview"></textarea>
+    <div class="sheet__actions">
+      <a id="shareWhatsApp" class="btn btn--wa" target="_blank" rel="noopener">Send on WhatsApp</a>
+      <button class="btn btn--ghost" id="shareNative" hidden>Share…</button>
+      <button class="btn btn--ghost" id="shareCopy">Copy text</button>
+      <button class="btn btn--ghost" id="shareImage">Save as image</button>
+    </div>
+    <p class="muted sheet__note">The link at the end opens this basket in Tilbud Radar on any phone or computer. Nothing is stored online.</p>
+  </dialog>
+
+  <dialog id="importDialog" class="sheet" aria-labelledby="importTitle">
+    <div class="sheet__head"><strong id="importTitle">Open a shared basket?</strong></div>
+    <p id="importSummary"></p>
+    <div class="sheet__actions">
+      <button class="btn" id="importAdd">Add to my basket</button>
+      <button class="btn btn--ghost" id="importReplace">Replace my basket</button>
+      <button class="btn btn--ghost" id="importCancel">Cancel</button>
+    </div>
+  </dialog>
+
   <div id="toast" class="toast" hidden></div>
   <script type="module" src="app.js"></script>
 </body>

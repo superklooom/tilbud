@@ -5,7 +5,7 @@ import { createApi } from './core.js';
 import { BRANDS, DA_TERMS, EN_TO_DA, englishFor, fold } from './dictionary.js';
 import { danishFor, knownDanish } from './translate.js';
 import { relevance, TIER } from './relevance.js';
-import { snapshot, summarize } from './basket.js';
+import { basketText, decodeBasket, encodeBasket, mergeBaskets, snapshot, summarize } from './basket.js';
 import { isGrocery, isSupermarket } from './stores.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -895,7 +895,10 @@ function renderBasket() {
         <div class="muted">${s.count} item${s.count === 1 ? '' : 's'} from ${s.groups.length} chain${s.groups.length === 1 ? '' : 's'}${s.savings > 0 ? ` · you save ${money(s.savings)}` : ''}</div>
         ${s.expired ? `<div class="basket-summary__warn">${s.expired} expired offer${s.expired === 1 ? ' is' : 's are'} not included in the total</div>` : ''}
       </div>
-      <button class="btn btn--ghost" id="basketClear">Empty basket</button>
+      <div class="basket-summary__actions">
+        <button class="btn" id="basketShare">Share</button>
+        <button class="btn btn--ghost" id="basketClear">Empty basket</button>
+      </div>
     </div>
     ${groups}`;
 }
@@ -911,12 +914,171 @@ function initBasket() {
       state.basket = state.basket.filter((b) => b.id !== rm.dataset.remove);
       return saveBasket();
     }
+    if (e.target.closest('#basketShare')) return openShare();
     if (e.target.closest('#basketClear') && confirm('Remove all products from your basket?')) {
       state.basket = [];
       saveBasket();
     }
   });
   saveBasket();
+}
+
+// ---------- share basket ----------
+async function shareLink() {
+  return `${location.origin}${location.pathname}#basket=${await encodeBasket(state.basket)}`;
+}
+
+async function openShare() {
+  if (!state.basket.length) return;
+  const text = basketText(state.basket, { link: await shareLink() });
+  $('#shareText').value = text;
+  $('#shareWhatsApp').href = `https://wa.me/?text=${encodeURIComponent(text)}`;
+  $('#shareNative').hidden = !navigator.share;
+  $('#shareDialog').showModal();
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const t = $('#shareText');
+    t.select();
+    document.execCommand('copy'); // older browsers / no clipboard permission
+  }
+  toast('Copied – paste it into WhatsApp, an email or a note');
+}
+
+// Draws the basket as a PNG (1080 px wide, sized for phones). Product photos are left out:
+// images from other sites can't be drawn into a canvas that is then exported.
+function basketImage() {
+  const s = summarize(state.basket);
+  const W = 1080;
+  const PAD = 64;
+  const font = (size, weight = 400) => `${weight} ${size}px system-ui, -apple-system, "Segoe UI", sans-serif`;
+  const rows = [];
+  for (const g of s.groups) {
+    rows.push({ type: 'group', g });
+    for (const i of g.items) rows.push({ type: 'item', i });
+  }
+  const H = 330 + rows.reduce((h, r) => h + (r.type === 'group' ? 96 : 92), 0) + 110;
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const c = canvas.getContext('2d');
+  const fit = (text, max) => {
+    if (c.measureText(text).width <= max) return text;
+    let t = text;
+    while (t.length > 1 && c.measureText(`${t}…`).width > max) t = t.slice(0, -1);
+    return `${t}…`;
+  };
+  c.fillStyle = '#f4f6f5';
+  c.fillRect(0, 0, W, H);
+  c.fillStyle = '#0f766e';
+  c.font = font(30, 700);
+  c.fillText('Tilbud Radar · My basket', PAD, 90);
+  c.fillStyle = '#1c2524';
+  c.font = font(84, 800);
+  c.fillText(money(s.total), PAD, 190);
+  c.fillStyle = '#64716f';
+  c.font = font(32);
+  c.fillText(`${s.count} item${s.count === 1 ? '' : 's'} from ${s.groups.length} chain${s.groups.length === 1 ? '' : 's'}${s.savings > 0 ? ` · you save ${money(s.savings)}` : ''}`, PAD, 245);
+  let y = 330;
+  for (const r of rows) {
+    if (r.type === 'group') {
+      y += 24;
+      c.fillStyle = r.g.dealer.color;
+      c.beginPath();
+      c.arc(PAD + 14, y + 22, 14, 0, Math.PI * 2);
+      c.fill();
+      c.fillStyle = '#1c2524';
+      c.font = font(38, 700);
+      c.fillText(fit(r.g.dealer.name, 600), PAD + 44, y + 36);
+      c.textAlign = 'right';
+      c.fillText(money(r.g.subtotal), W - PAD, y + 36);
+      c.textAlign = 'left';
+      c.fillStyle = '#dbe2e0';
+      c.fillRect(PAD, y + 62, W - PAD * 2, 2);
+      y += 72;
+    } else {
+      const i = r.i;
+      const expired = i.status.level === 'expired';
+      c.fillStyle = expired ? '#9aa5a3' : '#1c2524';
+      c.font = font(32, 600);
+      const price = expired ? 'ended' : money(i.line);
+      c.textAlign = 'right';
+      c.fillText(price, W - PAD, y + 34);
+      const priceW = c.measureText(price).width;
+      c.textAlign = 'left';
+      c.fillText(fit(`${i.qty > 1 ? `${i.qty} × ` : ''}${i.heading}`, W - PAD * 2 - priceW - 40), PAD, y + 34);
+      c.font = font(26);
+      c.fillStyle = i.status.level === 'soon' || expired ? '#dc2626' : '#64716f';
+      c.fillText(fit([i.quantity, i.status.level === 'unknown' ? '' : i.status.label].filter(Boolean).join(' · '), W - PAD * 2), PAD, y + 72);
+      y += 92;
+    }
+  }
+  c.fillStyle = '#64716f';
+  c.font = font(26);
+  c.fillText(`${location.host}${location.pathname}`.replace(/\/$/, ''), PAD, H - 50);
+  return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+}
+
+async function saveImage() {
+  const blob = await basketImage();
+  const file = new File([blob], 'tilbud-basket.png', { type: 'image/png' });
+  if (navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: 'My Tilbud Radar basket' });
+      return;
+    } catch (e) {
+      if (e.name === 'AbortError') return; // user closed the share sheet
+    }
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = file.name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast('Image saved – attach it in WhatsApp');
+}
+
+function initShare() {
+  $('#shareClose').addEventListener('click', () => $('#shareDialog').close());
+  $('#shareCopy').addEventListener('click', () => copyText($('#shareText').value));
+  $('#shareImage').addEventListener('click', saveImage);
+  $('#shareNative').addEventListener('click', async () => {
+    try { await navigator.share({ title: 'My Tilbud Radar basket', text: $('#shareText').value }); } catch { /* closed */ }
+  });
+  $('#shareDialog').addEventListener('click', (e) => { if (e.target === $('#shareDialog')) $('#shareDialog').close(); });
+}
+
+// Opening a link with #basket=… offers to load that basket.
+async function importFromHash() {
+  const m = location.hash.match(/^#basket=([A-Za-z0-9_-]+)$/);
+  if (!m) return;
+  history.replaceState(null, '', location.pathname + location.search); // don't re-import on reload
+  const items = await decodeBasket(m[1]);
+  if (!items) return toast('That basket link could not be opened');
+  const show = () => document.querySelector('[data-tab="basket"]').click();
+  if (!state.basket.length) {
+    state.basket = items;
+    saveBasket();
+    show();
+    return toast(`Loaded a shared basket with ${items.length} product${items.length === 1 ? '' : 's'}`);
+  }
+  const total = summarize(items).total;
+  $('#importSummary').textContent = `It has ${items.length} product${items.length === 1 ? '' : 's'} (${money(total)}). Your basket already has ${state.basket.length}.`;
+  const dlg = $('#importDialog');
+  const done = (basket) => {
+    dlg.close();
+    if (!basket) return;
+    state.basket = basket;
+    saveBasket();
+    show();
+  };
+  $('#importAdd').onclick = () => done(mergeBaskets(state.basket, items));
+  $('#importReplace').onclick = () => done(items);
+  $('#importCancel').onclick = () => done(null);
+  dlg.showModal();
 }
 
 // ---------- tabs ----------
@@ -942,10 +1104,18 @@ async function boot() {
   initViewer();
   initList();
   initBasket();
+  initShare();
+  window.addEventListener('hashchange', importFromHash);
 
   // A location can be shared as a link: ?lat=..&lng=..  or ?q=<address or maps link>
   const params = new URLSearchParams(location.search);
-  const shared = params.get('q') || params.get('text') || params.get('url');
+  let shared = params.get('q') || params.get('text') || params.get('url');
+  // A basket link shared into the installed app arrives as ?text=… / ?url=…, not as the page's own hash.
+  const sharedBasket = shared?.match(/#basket=([A-Za-z0-9_-]+)/);
+  if (sharedBasket) {
+    history.replaceState(null, '', `${location.pathname}#basket=${sharedBasket[1]}`);
+    shared = null;
+  }
   const radius = Number(params.get('r'));
   if (radius) $('#radiusSelect').value = String(radius);
   try {
@@ -965,6 +1135,7 @@ async function boot() {
   } catch (e) {
     toast(e.message);
   }
+  importFromHash(); // after the location messages, so its own message stays visible
 }
 
 boot();

@@ -39,3 +39,61 @@ test('expired offers are listed but not counted', () => {
   assert.equal(s.expired, 1);
   assert.equal(s.groups[0].items.length, 2);
 });
+
+import { basketText, decodeBasket, encodeBasket, mergeBaskets } from '../public/basket.js';
+
+const sample = () => [
+  { ...item('k1', 'Netto', 35, new Date(2026, 9, 6, 23, 59).toISOString(), { prePrice: 45 }), heading: 'Gevalia Kaffe', quantity: '400 g', thumb: 'https://img.tjek.com/a.jpg' },
+  { ...item('c1', 'Netto', 15, new Date(2026, 9, 6, 23, 59).toISOString(), { qty: 2 }), heading: 'Coca-Cola Zero', quantity: '1,5 l' },
+  { ...item('b1', 'Bilka', 129, new Date(2026, 9, 6, 23, 59).toISOString()), heading: 'Coca-Cola 24 x 33 cl' },
+  { ...item('x1', 'Lidl', 10, new Date(2026, 8, 30).toISOString()), heading: 'Old offer' },
+];
+
+test('WhatsApp text: grouped by chain, totals, end dates, expired listed separately, link last', () => {
+  const text = basketText(sample(), { link: 'https://example.test/#basket=abc', now }).replace(/\u00a0/g, ' ');
+  assert.equal(text, [
+    '*My Tilbud Radar basket*',
+    'Total: 194,00 kr. · 4 items · you save 10,00 kr.',
+    '',
+    '*Bilka* · 129,00 kr.',
+    '• Coca-Cola 24 x 33 cl · 129,00 kr. · ends Tue 6 Oct',
+    '',
+    '*Netto* · 65,00 kr.',
+    '• Gevalia Kaffe, 400 g · 35,00 kr. · ends Tue 6 Oct',
+    '• 2 × Coca-Cola Zero, 1,5 l · 30,00 kr. · ends Tue 6 Oct',
+    '',
+    'Offer ended (not in total):',
+    '• Old offer (Lidl)',
+    '',
+    'Open this basket in Tilbud Radar:',
+    'https://example.test/#basket=abc',
+  ].join('\n'));
+});
+
+test('share link round-trips the basket', async () => {
+  const items = sample();
+  const encoded = await encodeBasket(items);
+  assert.match(encoded, /^[zj][A-Za-z0-9_-]+$/);
+  const back = await decodeBasket(encoded);
+  assert.deepEqual(back.map((i) => [i.id, i.heading, i.price, i.qty, i.dealer.name, i.thumb]),
+    items.map((i) => [i.id, i.heading, i.price, i.qty, i.dealer.name, i.thumb ?? null]));
+});
+
+test('share links are validated: bad fields are dropped, garbage is rejected', async () => {
+  const evil = [{ ...sample()[0], heading: '<img src=x onerror=alert(1)>', thumb: 'javascript:alert(1)', qty: 5000, price: -3,
+    dealer: { name: 'Netto', color: 'red;background:url(https://evil.test)' } }];
+  const [i] = await decodeBasket(await encodeBasket(evil));
+  assert.equal(i.thumb, null);
+  assert.equal(i.qty, 1);
+  assert.equal(i.price, null);
+  assert.equal(i.dealer.color, '#555555');
+  assert.equal(i.heading, '<img src=x onerror=alert(1)>'); // kept as text; the page escapes it when rendering
+  assert.equal(await decodeBasket('not-a-basket'), null);
+  assert.equal(await decodeBasket('zAAAA'), null);
+});
+
+test('merging keeps existing items and the higher quantity', () => {
+  const [a, b] = sample();
+  const merged = mergeBaskets([{ ...a, qty: 1 }], [{ ...a, qty: 3 }, b]);
+  assert.deepEqual(merged.map((i) => [i.id, i.qty]), [['k1', 3], ['c1', 2]]);
+});

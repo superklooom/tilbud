@@ -70,3 +70,113 @@ export function summarize(items, now = new Date()) {
     expired,
   };
 }
+
+// ---------- sharing ----------
+const money = (v) => (v == null ? '' : new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK' }).format(v));
+const shortEnd = (status) => (status.level === 'unknown' ? '' : status.label.replace(/^Ends /, 'ends ').replace(/ · .*$/, ''));
+
+// A WhatsApp-friendly message (*bold*), grouped by chain like the basket page.
+export function basketText(items, { link = '', now = new Date() } = {}) {
+  const s = summarize(items, now);
+  const lines = ['*My Tilbud Radar basket*'];
+  lines.push(`Total: ${money(s.total)} · ${s.count} item${s.count === 1 ? '' : 's'}${s.savings > 0 ? ` · you save ${money(s.savings)}` : ''}`);
+  const expired = [];
+  for (const g of s.groups) {
+    const live = g.items.filter((i) => i.status.level !== 'expired');
+    expired.push(...g.items.filter((i) => i.status.level === 'expired'));
+    if (!live.length) continue;
+    lines.push('', `*${g.dealer.name}* · ${money(g.subtotal)}`);
+    for (const i of live) {
+      const name = `${i.qty > 1 ? `${i.qty} × ` : ''}${i.heading}${i.quantity ? `, ${i.quantity}` : ''}`;
+      const end = shortEnd(i.status);
+      lines.push(`• ${name} · ${money(i.line)}${end ? ` · ${end}` : ''}`);
+    }
+  }
+  if (expired.length) {
+    lines.push('', 'Offer ended (not in total):');
+    for (const i of expired) lines.push(`• ${i.heading} (${i.dealer.name})`);
+  }
+  if (link) lines.push('', 'Open this basket in Tilbud Radar:', link);
+  return lines.join('\n');
+}
+
+// Basket <-> compact string for a share link (#basket=...). Compressed when the browser supports it.
+const FIELDS = ['id', 'heading', 'quantity', 'price', 'prePrice', 'thumb', 'runFrom', 'runTill', 'dealerName', 'dealerColor', 'catalogId', 'catalogPage', 'qty'];
+const MAX_ITEMS = 200;
+
+const b64url = (bytes) => {
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+};
+const fromB64url = (str) => Uint8Array.from(atob(str.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
+
+async function pipe(bytes, Stream) {
+  return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new Stream('deflate-raw'))).arrayBuffer());
+}
+
+export async function encodeBasket(items) {
+  const rows = items.slice(0, MAX_ITEMS).map((i) => FIELDS.map((f) => (
+    f === 'dealerName' ? i.dealer.name : f === 'dealerColor' ? i.dealer.color : i[f] ?? null)));
+  const bytes = new TextEncoder().encode(JSON.stringify(rows));
+  if (typeof CompressionStream === 'function') return `z${b64url(await pipe(bytes, CompressionStream))}`;
+  return `j${b64url(bytes)}`;
+}
+
+// The string comes from a link, i.e. from anyone: validate every field and drop anything odd.
+const str = (v, max = 300) => (typeof v === 'string' ? v.slice(0, max) : '');
+const num = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 && v < 1e6 ? v : null);
+const httpsUrl = (v) => (typeof v === 'string' && /^https:\/\/[^\s"'<>]+$/.test(v) ? v.slice(0, 500) : null);
+const color = (v) => (typeof v === 'string' && /^#[0-9a-f]{3,8}$/i.test(v) ? v : '#555555');
+const date = (v) => (typeof v === 'string' && !Number.isNaN(new Date(v).getTime()) ? v.slice(0, 40) : null);
+
+export async function decodeBasket(encoded) {
+  try {
+    const kind = encoded[0];
+    let bytes = fromB64url(encoded.slice(1));
+    if (kind === 'z') bytes = await pipe(bytes, DecompressionStream);
+    else if (kind !== 'j') return null;
+    const rows = JSON.parse(new TextDecoder().decode(bytes));
+    if (!Array.isArray(rows)) return null;
+    const items = [];
+    const seen = new Set();
+    for (const row of rows.slice(0, MAX_ITEMS)) {
+      if (!Array.isArray(row)) continue;
+      const r = Object.fromEntries(FIELDS.map((f, k) => [f, row[k]]));
+      const heading = str(r.heading);
+      const id = str(r.id, 100) || `shared-${items.length}`;
+      if (!heading || seen.has(id)) continue;
+      seen.add(id);
+      items.push({
+        id,
+        heading,
+        quantity: str(r.quantity, 60),
+        price: num(r.price),
+        prePrice: num(r.prePrice),
+        unitPrice: null,
+        thumb: httpsUrl(r.thumb),
+        runFrom: date(r.runFrom),
+        runTill: date(r.runTill),
+        dealer: { name: str(r.dealerName, 60) || 'Unknown', color: color(r.dealerColor) },
+        catalogId: str(r.catalogId, 100) || null,
+        catalogPage: Number.isInteger(r.catalogPage) && r.catalogPage > 0 && r.catalogPage < 1000 ? r.catalogPage : null,
+        qty: Number.isInteger(r.qty) && r.qty >= 1 && r.qty <= 99 ? r.qty : 1,
+        addedAt: Date.now(),
+      });
+    }
+    return items.length ? items : null;
+  } catch {
+    return null;
+  }
+}
+
+// Merge shared items into a basket: same offer -> keep the higher quantity.
+export function mergeBaskets(current, incoming) {
+  const out = current.map((i) => ({ ...i }));
+  for (const item of incoming) {
+    const existing = out.find((i) => i.id === item.id);
+    if (existing) existing.qty = Math.max(existing.qty, item.qty);
+    else out.push(item);
+  }
+  return out;
+}
