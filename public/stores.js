@@ -6,9 +6,10 @@ import { fold } from './dictionary.js';
 // Danish supermarket / grocery chains, folded ("føtex" -> "fotex"). A dealer name matches when it
 // equals or starts with one of these ("coop 365discount", "lovbjerg supermarked").
 const SUPERMARKETS = [
-  'netto', 'fotex', 'bilka', 'lidl', 'rema 1000', 'rema', 'coop 365', 'coop', 'kvickly', 'superbrugsen',
-  'dagli brugsen', 'daglibrugsen', 'brugsen', 'lokal brugsen', 'meny', 'spar', 'min kobmand', 'lovbjerg',
-  'abc lavpris', 'let kob', 'naerkob', 'irma', 'fakta', 'aldi', 'kiwi', 'nemlig', 'salling super',
+  'netto', 'fotex', 'bilka', 'lidl', 'rema 1000', 'rema', '365discount', '365 discount', 'coop 365', 'coop',
+  'kvickly', 'superbrugsen', 'dagli brugsen', 'daglibrugsen', 'daglig brugsen', 'brugsen', 'lokal brugsen', 'meny',
+  'spar', 'kwik spar', 'eurospar', 'min kobmand', 'lovbjerg', 'abc lavpris', 'let kob', 'naerkob', 'irma', 'fakta',
+  'aldi', 'kiwi', 'nemlig', 'salling super',
 ];
 
 export function isSupermarket(dealerName) {

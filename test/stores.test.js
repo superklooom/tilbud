@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { isGrocery, isSupermarket, looksNonFood } from '../public/stores.js';
 
 test('supermarket chains are recognised', () => {
-  for (const n of ['Netto', 'føtex', 'Bilka', 'Lidl', 'REMA 1000', 'Coop 365discount', 'Kvickly', 'SuperBrugsen', "Dagli'Brugsen", 'MENY', 'SPAR', 'Min Købmand', 'Løvbjerg Supermarked']) {
+  for (const n of ['Netto', 'føtex', 'Bilka', 'Lidl', 'REMA 1000', '365discount', '365 discount', 'Coop 365discount', 'Coop 365', 'Kwik Spar', 'Eurospar', 'Daglig Brugsen', 'Kvickly', 'SuperBrugsen', "Dagli'Brugsen", 'MENY', 'SPAR', 'Min Købmand', 'Løvbjerg Supermarked']) {
     assert.ok(isSupermarket(n), n);
   }
   for (const n of ['JYSK', 'Søstrene Grene', 'BAUHAUS', 'Elgiganten', 'Sport 24', 'Normal', 'Sparekassen']) {

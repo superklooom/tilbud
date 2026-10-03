@@ -8,7 +8,7 @@ const DEALERS = [
   { id: 'd-bilka', name: 'Bilka', color: '0071ce' },
   { id: 'd-lidl', name: 'Lidl', color: '0050aa' },
   { id: 'd-rema', name: 'REMA 1000', color: '002f6c' },
-  { id: 'd-coop365', name: 'Coop 365discount', color: 'e2001a' },
+  { id: 'd-coop365', name: '365discount', color: 'e2001a' },
   { id: 'd-meny', name: 'MENY', color: 'c8102e' },
   { id: 'd-superbrugsen', name: 'SuperBrugsen', color: 'd6001c' },
 ];
