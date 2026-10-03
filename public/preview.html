@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Design Options</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <style>
+    /* Fonts are served from this site (no Google Fonts requests). Variable fonts: one file per family. */
+    @font-face { font-family: 'Inter'; src: url(fonts/inter.woff2) format('woff2'); font-weight: 100 900; font-display: swap; }
+    @font-face { font-family: 'DM Sans'; src: url(fonts/dm-sans.woff2) format('woff2'); font-weight: 100 1000; font-display: swap; }
+    @font-face { font-family: 'Plus Jakarta Sans'; src: url(fonts/plus-jakarta-sans.woff2) format('woff2'); font-weight: 200 800; font-display: swap; }
+    @font-face { font-family: 'Nunito'; src: url(fonts/nunito.woff2) format('woff2'); font-weight: 200 1000; font-display: swap; }
+    @font-face { font-family: 'Manrope'; src: url(fonts/manrope.woff2) format('woff2'); font-weight: 200 800; font-display: swap; }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    :root { --page-bg: #e9ecef; --page-text: #1f2328; --page-muted: #5b6470; --page-card: #ffffff; --page-border: #d5dae0; }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) { --page-bg: #111417; --page-text: #e6e9ec; --page-muted: #98a2ad; --page-card: #1a1e22; --page-border: #2c3238; }
+    }
+    :root[data-theme="dark"] { --page-bg: #111417; --page-text: #e6e9ec; --page-muted: #98a2ad; --page-card: #1a1e22; --page-border: #2c3238; }
+    body { margin: 0; background: var(--page-bg); color: var(--page-text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+
+    .intro { max-width: 1560px; margin: 0 auto; padding: 24px 16px 8px; }
+    .intro h1 { margin: 0 0 6px; font-size: 24px; }
+    .intro p { margin: 0 0 12px; color: var(--page-muted); max-width: 760px; }
+    .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .seg { display: inline-flex; border: 1px solid var(--page-border); border-radius: 10px; overflow: hidden; background: var(--page-card); }
+    .seg button { border: 0; background: none; padding: 8px 14px; font: inherit; color: inherit; cursor: pointer; }
+    .seg button[aria-pressed="true"] { background: var(--page-text); color: var(--page-bg); }
+
+    .options { max-width: 1560px; margin: 0 auto; padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; align-items: start; }
+    .option { background: var(--page-card); border: 1px solid var(--page-border); border-radius: 16px; padding: 14px; }
+    .option__head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+    .option__head h2 { margin: 0; font-size: 18px; }
+    .option__desc { margin: 4px 0 10px; color: var(--page-muted); font-size: 14px; min-height: 42px; }
+    .option__font { display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 12px; }
+    .option__font select { font: inherit; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--page-border); background: var(--page-card); color: inherit; flex: 1; }
+    .swatches { display: flex; gap: 6px; }
+    .swatches span { width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(0,0,0,.15); }
+
+    /* ---------- the phone frame: everything inside uses the option's tokens ---------- */
+    .phone { max-width: 390px; margin: 0 auto; border-radius: 22px; overflow: hidden; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-family: var(--font), system-ui, sans-serif; box-shadow: 0 8px 28px rgba(0,0,0,.12); }
+    .phone * { font-family: inherit; }
+    .p-header { background: var(--header-bg); color: var(--header-ink); padding: 16px 16px 12px; }
+    .p-brand { display: flex; align-items: center; gap: 10px; }
+    .p-brand svg { flex: none; }
+    .p-brand h3 { margin: 0; font-size: 21px; font-weight: 800; letter-spacing: var(--title-tracking); }
+    .p-brand p { margin: 0; font-size: 12.5px; opacity: .75; }
+    .p-loc { margin-top: 12px; display: flex; align-items: center; gap: 6px; padding: 9px 12px; border-radius: var(--radius-s); background: var(--loc-bg); color: var(--loc-ink); font-size: 13.5px; }
+    .p-tabs { display: flex; gap: 2px; padding: 0 10px; background: var(--surface); border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+    .p-tab { padding: 11px 8px; font-size: 13.5px; font-weight: 600; color: var(--muted); border-bottom: 3px solid transparent; white-space: nowrap; }
+    .p-tab.on { color: var(--accent-text); border-bottom-color: var(--accent); }
+    .p-count { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 3px; border-radius: 999px; background: var(--alert); color: #fff; font-size: 11px; line-height: 18px; text-align: center; }
+    .p-body { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+    .p-search { display: flex; gap: 8px; }
+    .p-input { flex: 1; padding: 10px 12px; border-radius: var(--radius-s); border: 1px solid var(--border); background: var(--surface); font-size: 15px; }
+    .p-btn { padding: 10px 14px; border-radius: var(--radius-s); background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 14px; border: 0; }
+    .p-btn.ghost { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+    .p-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .p-chip { padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); font-size: 13px; }
+    .p-chip.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+    .p-meta { font-size: 12.5px; color: var(--muted); }
+    .p-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .p-card { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+    .p-card.best { border-color: var(--best); box-shadow: 0 0 0 2px var(--best); }
+    .p-badge { position: absolute; top: 8px; left: 8px; background: var(--best); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+    .p-img { aspect-ratio: 1; background: var(--img-bg); display: flex; align-items: center; justify-content: center; }
+    .p-cbody { padding: 9px 10px 10px; display: flex; flex-direction: column; gap: 3px; flex: 1; }
+    .p-dealer { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; }
+    .p-dot { width: 9px; height: 9px; border-radius: 50%; }
+    .p-title { font-weight: 700; font-size: 14px; line-height: 1.25; }
+    .p-small { font-size: 12px; color: var(--muted); }
+    .p-price { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; margin-top: 4px; font-variant-numeric: tabular-nums; }
+    .p-now { font-size: 19px; font-weight: 800; color: var(--price); background: var(--price-bg); padding: var(--price-pad); border-radius: 6px; transform: var(--price-tilt); }
+    .p-was { font-size: 12px; color: var(--muted); text-decoration: line-through; }
+    .p-add { margin-top: 7px; padding: 7px; border-radius: calc(var(--radius-s) - 2px); border: 1px solid var(--accent); color: var(--accent-text); background: var(--surface); font-weight: 700; font-size: 12.5px; text-align: center; }
+    .p-add.on { background: var(--accent); color: var(--accent-ink); }
+    .p-summary { background: var(--summary-bg); color: var(--summary-ink); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; box-shadow: var(--shadow); }
+    .p-summary small { display: block; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; opacity: .7; }
+    .p-total { font-size: 28px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .p-sub { font-size: 12.5px; opacity: .75; }
+    .p-group { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .p-ghead { display: flex; justify-content: space-between; padding: 9px 12px; background: var(--surface-2); font-size: 13.5px; font-weight: 700; }
+    .p-row { display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; font-size: 13.5px; }
+    .p-row + .p-row { border-top: 1px solid var(--border); }
+    .p-row b { font-variant-numeric: tabular-nums; }
+    .p-soon { color: var(--alert); font-weight: 600; }
+
+    /* ---------- the four directions (light + dark tokens) ---------- */
+    .t-fresh { --font: 'Inter'; --title-tracking: -.02em;
+      --bg: #f4f7f6; --surface: #fff; --surface-2: #eef3f1; --text: #15201e; --muted: #5f6e6b; --border: #dde5e3;
+      --accent: #0f766e; --accent-ink: #fff; --accent-text: #0f766e; --price: #d92d20; --alert: #d92d20; --price-bg: transparent; --price-pad: 0; --price-tilt: none;
+      --best: #15803d; --radius: 14px; --radius-s: 10px; --shadow: 0 1px 2px rgba(0,0,0,.06);
+      --header-bg: #fff; --header-ink: #15201e; --loc-bg: #eef3f1; --loc-ink: #15201e; --img-bg: #fff; --summary-bg: #fff; --summary-ink: #15201e; }
+    .t-market { --font: 'DM Sans'; --title-tracking: -.01em;
+      --bg: #fbf6ef; --surface: #fff; --surface-2: #f6ede2; --text: #2a1d14; --muted: #7a6656; --border: #eadfd2;
+      --accent: #e4572e; --accent-ink: #fff; --accent-text: #c2451f; --price: #b42318; --alert: #b42318; --price-bg: transparent; --price-pad: 0; --price-tilt: none;
+      --best: #2f7d32; --radius: 12px; --radius-s: 10px; --shadow: 0 2px 6px rgba(80,40,10,.07);
+      --header-bg: #e4572e; --header-ink: #fff; --loc-bg: rgba(255,255,255,.18); --loc-ink: #fff; --img-bg: #fff; --summary-bg: #2a1d14; --summary-ink: #fff; }
+    .t-bold { --font: 'Plus Jakarta Sans'; --title-tracking: -.02em;
+      --bg: #eef1f8; --surface: #fff; --surface-2: #e8ecf6; --text: #0b1533; --muted: #56607a; --border: #d9deea;
+      --accent: #1d3fd1; --accent-ink: #fff; --accent-text: #1d3fd1; --price: #0b1533; --alert: #e11d48; --price-bg: #ffd400; --price-pad: 1px 8px; --price-tilt: rotate(-2deg);
+      --best: #1d3fd1; --radius: 10px; --radius-s: 8px; --shadow: 0 2px 8px rgba(11,21,51,.08);
+      --header-bg: #0b1533; --header-ink: #fff; --loc-bg: rgba(255,255,255,.1); --loc-ink: #fff; --img-bg: #fff; --summary-bg: #ffd400; --summary-ink: #0b1533; }
+    .t-hygge { --font: 'Nunito'; --title-tracking: 0;
+      --bg: #f3efe7; --surface: #fffdf8; --surface-2: #f2ebdf; --text: #2f2a24; --muted: #7b7166; --border: #e6ddcf;
+      --accent: #4f7d5c; --accent-ink: #fff; --accent-text: #3e6a4b; --price: #b5462f; --alert: #b5462f; --price-bg: transparent; --price-pad: 0; --price-tilt: none;
+      --best: #4f7d5c; --radius: 20px; --radius-s: 14px; --shadow: 0 4px 14px rgba(70,55,30,.08);
+      --header-bg: #fffdf8; --header-ink: #2f2a24; --loc-bg: #f2ebdf; --loc-ink: #2f2a24; --img-bg: #fffdf8; --summary-bg: #4f7d5c; --summary-ink: #fff; }
+
+    [data-mode="dark"] .t-fresh { --bg: #0f1514; --surface: #18201f; --surface-2: #222c2a; --text: #e6eeec; --muted: #93a19e; --border: #2e3a38;
+      --accent: #2dd4bf; --accent-ink: #062521; --accent-text: #2dd4bf; --price: #f87171; --alert: #f87171; --best: #4ade80; --header-bg: #18201f; --header-ink: #e6eeec;
+      --loc-bg: #222c2a; --loc-ink: #e6eeec; --img-bg: #f4f7f6; --summary-bg: #18201f; --summary-ink: #e6eeec; }
+    [data-mode="dark"] .t-market { --bg: #1a1410; --surface: #241c16; --surface-2: #2e241c; --text: #f3e9df; --muted: #b29e8c; --border: #3a2e24;
+      --accent: #f07a52; --accent-ink: #1a1410; --accent-text: #f4906c; --price: #ff8a7a; --alert: #ff8a7a; --best: #6fbf73; --header-bg: #2b1d15; --header-ink: #f3e9df;
+      --loc-bg: rgba(255,255,255,.08); --loc-ink: #f3e9df; --img-bg: #fbf6ef; --summary-bg: #f07a52; --summary-ink: #1a1410; }
+    [data-mode="dark"] .t-bold { --bg: #080d1f; --surface: #111a36; --surface-2: #18234a; --text: #e8ecfa; --muted: #9aa5c4; --border: #24305a;
+      --accent: #6d88ff; --accent-ink: #080d1f; --accent-text: #8aa0ff; --price: #0b1533; --alert: #ff6b81; --best: #6d88ff; --header-bg: #050914; --header-ink: #fff;
+      --img-bg: #eef1f8; --summary-bg: #ffd400; --summary-ink: #0b1533; }
+    [data-mode="dark"] .t-hygge { --bg: #1b1915; --surface: #25221d; --surface-2: #2f2b25; --text: #efe8dc; --muted: #ada294; --border: #3a352d;
+      --accent: #8fbf9c; --accent-ink: #14211a; --accent-text: #9fcfab; --price: #ef8e74; --alert: #ef8e74; --best: #8fbf9c; --header-bg: #25221d; --header-ink: #efe8dc;
+      --loc-bg: #2f2b25; --loc-ink: #efe8dc; --img-bg: #fffdf8; --summary-bg: #8fbf9c; --summary-ink: #14211a; }
+
+    .pick { max-width: 1560px; margin: 0 auto; padding: 0 16px 32px; color: var(--page-muted); font-size: 14px; }
+  </style>
+</head>
+<body>
+  <section class="intro">
+    <h1>Tilbud Radar – design options</h1>
+    <p>Four directions shown on the same screen. Each one can use any of the five fonts – change the font under each title. Switch to dark mode to check that too, and open this page on your phone. Nothing here changes the live site until you pick one.</p>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Colour mode">
+        <button type="button" data-mode-btn="light" aria-pressed="true">Light</button>
+        <button type="button" data-mode-btn="dark" aria-pressed="false">Dark</button>
+      </div>
+    </div>
+  </section>
+
+  <main class="options" id="options"></main>
+  <p class="pick">To choose, just say which option and font you like, e.g. “B with Inter”. Fonts are stored on the site itself (no Google Fonts requests) and all support æ, ø and å.</p>
+
+  <script>
+    const FONTS = ['Inter', 'DM Sans', 'Plus Jakarta Sans', 'Nunito', 'Manrope'];
+    const OPTIONS = [
+      { key: 'A', cls: 't-fresh', name: 'Fresh', font: 'Inter', swatches: ['#0f766e', '#d92d20', '#f4f7f6'],
+        desc: 'A refined version of today\'s look: calm teal, white cards, red prices. Clean and neutral.' },
+      { key: 'B', cls: 't-market', name: 'Market', font: 'DM Sans', swatches: ['#e4572e', '#2a1d14', '#fbf6ef'],
+        desc: 'Warm and appetising: tomato-orange header, cream background, dark basket total.' },
+      { key: 'C', cls: 't-bold', name: 'Tilbud', font: 'Plus Jakarta Sans', swatches: ['#0b1533', '#ffd400', '#1d3fd1'],
+        desc: 'Bold, like a Danish offer catalogue: navy header and yellow price tags that pop.' },
+      { key: 'D', cls: 't-hygge', name: 'Hygge', font: 'Nunito', swatches: ['#4f7d5c', '#b5462f', '#f3efe7'],
+        desc: 'Soft and homely: sage green, terracotta prices, rounded corners and warm beige.' },
+    ];
+
+    const bottle = (glass, label) => `<svg width="62" height="120" viewBox="0 0 62 120" aria-hidden="true">
+      <rect x="24" y="2" width="14" height="14" rx="3" fill="#2b2b2b"/><path d="M24 16h14v10c0 6 14 12 14 26v58a8 8 0 0 1-8 8H18a8 8 0 0 1-8-8V52c0-14 14-20 14-26z" fill="${glass}"/>
+      <rect x="14" y="60" width="34" height="34" rx="4" fill="${label}"/><rect x="19" y="68" width="24" height="4" rx="2" fill="#fff" opacity=".8"/><rect x="19" y="77" width="16" height="3" rx="1.5" fill="#fff" opacity=".6"/></svg>`;
+    const logo = (fill) => `<svg width="34" height="34" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="${fill}"/><path d="M14 30V16a2 2 0 0 1 2-2h14l20 20-16 16z" fill="#fff"/><circle cx="22" cy="22" r="4" fill="${fill}"/></svg>`;
+
+    function phone(o) {
+      return `<div class="phone ${o.cls}" style="--font:'${o.font}'">
+        <div class="p-header">
+          <div class="p-brand">${logo('var(--accent)')}<div><h3>Tilbud Radar</h3><p>Every Danish supermarket offer this week, near you</p></div></div>
+          <div class="p-loc">📍 Vesterbrogade 1, København · 5 km</div>
+        </div>
+        <div class="p-tabs"><span class="p-tab on">Compare</span><span class="p-tab">All deals</span><span class="p-tab">Catalogs</span><span class="p-tab">My Basket<span class="p-count">2</span></span></div>
+        <div class="p-body">
+          <div class="p-search"><div class="p-input">olive oil</div><button class="p-btn" type="button">Search</button></div>
+          <div class="p-chips"><span class="p-chip">Coffee</span><span class="p-chip">Milk</span><span class="p-chip on">Olive oil</span><span class="p-chip">Bread</span></div>
+          <div class="p-meta">3 supermarket offers · searched “olivenolie” and “olive oil”</div>
+          <div class="p-grid">
+            <div class="p-card best"><span class="p-badge">Best value</span>
+              <div class="p-img">${bottle('#c9b33a', '#1d4fa3')}</div>
+              <div class="p-cbody"><div class="p-dealer"><span class="p-dot" style="background:#0050aa"></span>Lidl</div>
+                <div class="p-title">Primadonna ekstra jomfruolivenolie</div><div class="p-small">1 l</div>
+                <div class="p-price"><span class="p-now">59,95 kr.</span><span class="p-was">69,95 kr.</span></div>
+                <div class="p-small">59,95 kr. / L · Valid 2–9 Oct</div><div class="p-add">+ Add to basket</div></div></div>
+            <div class="p-card">
+              <div class="p-img">${bottle('#55702c', '#e8e2cf')}</div>
+              <div class="p-cbody"><div class="p-dealer"><span class="p-dot" style="background:#d6001c"></span>SuperBrugsen</div>
+                <div class="p-title">Olivo ekstra jomfru olivenolie</div><div class="p-small">1000 ml</div>
+                <div class="p-price"><span class="p-now">99,00 kr.</span></div>
+                <div class="p-small">99,00 kr. / L · Valid 2–9 Oct</div><div class="p-add on">✓ In basket</div></div></div>
+          </div>
+          <div class="p-summary"><div><small>Total</small><div class="p-total">194,00 kr.</div><div class="p-sub">4 items from 2 chains · you save 40,00 kr.</div></div><button class="p-btn ${o.cls === 't-fresh' ? '' : 'ghost'}" type="button">Share</button></div>
+          <div class="p-group"><div class="p-ghead"><span><span class="p-dot" style="display:inline-block;background:#ffd400;margin-right:6px"></span>Netto</span><span>65,00 kr.</span></div>
+            <div class="p-row"><span>Gevalia Kaffe 400 g<br><span class="p-small">Ends Tue 6 Oct · 3 days left</span></span><b>35,00 kr.</b></div>
+            <div class="p-row"><span>2 × Coca-Cola Zero 1,5 l<br><span class="p-small p-soon">⏰ Ends Sun 4 Oct · ends tomorrow</span></span><b>30,00 kr.</b></div></div>
+        </div>
+      </div>`;
+    }
+
+    document.getElementById('options').innerHTML = OPTIONS.map((o) => `
+      <section class="option" data-key="${o.key}">
+        <div class="option__head"><h2>${o.key} · ${o.name}</h2><div class="swatches">${o.swatches.map((c) => `<span style="background:${c}"></span>`).join('')}</div></div>
+        <p class="option__desc">${o.desc}</p>
+        <label class="option__font">Font
+          <select>${FONTS.map((f) => `<option${f === o.font ? ' selected' : ''}>${f}</option>`).join('')}</select>
+        </label>
+        ${phone(o)}
+      </section>`).join('');
+
+    document.querySelectorAll('.option select').forEach((sel) => sel.addEventListener('change', () => {
+      sel.closest('.option').querySelector('.phone').style.setProperty('--font', `'${sel.value}'`);
+    }));
+
+    function setMode(mode) {
+      document.body.dataset.mode = mode;
+      document.documentElement.dataset.theme = mode;
+      document.querySelectorAll('[data-mode-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.modeBtn === mode)));
+    }
+    document.querySelectorAll('[data-mode-btn]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.modeBtn)));
+    setMode(matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  </script>
+</body>
+</html>
