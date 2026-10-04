@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Header Sketches</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <style>
+    @font-face { font-family: 'Plus Jakarta Sans'; src: url(fonts/plus-jakarta-sans.woff2) format('woff2'); font-weight: 200 800; font-display: swap; }
+    *, *::before, *::after { box-sizing: border-box; }
+    :root { --page-bg: #e9ecef; --page-text: #1f2328; --page-muted: #5b6470; --page-card: #fff; --page-border: #d5dae0; }
+    :root[data-theme="dark"] { --page-bg: #111417; --page-text: #e6e9ec; --page-muted: #98a2ad; --page-card: #1a1e22; --page-border: #2c3238; }
+    body { margin: 0; background: var(--page-bg); color: var(--page-text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .intro { max-width: 1320px; margin: 0 auto; padding: 24px 16px 8px; }
+    .intro h1 { margin: 0 0 6px; font-size: 22px; }
+    .intro p { margin: 0 0 12px; color: var(--page-muted); max-width: 760px; }
+    .seg { display: inline-flex; border: 1px solid var(--page-border); border-radius: 10px; overflow: hidden; background: var(--page-card); }
+    .seg button { border: 0; background: none; padding: 8px 14px; font: inherit; color: inherit; cursor: pointer; }
+    .seg button[aria-pressed="true"] { background: var(--page-text); color: var(--page-bg); }
+    .options { max-width: 1320px; margin: 0 auto; padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; align-items: start; }
+    .option { background: var(--page-card); border: 1px solid var(--page-border); border-radius: 16px; padding: 14px; }
+    .option h2 { margin: 0; font-size: 18px; }
+    .option > p { margin: 4px 0 12px; color: var(--page-muted); font-size: 14px; min-height: 63px; }
+
+    /* ---------- phone, using the live "Tilbud" tokens ---------- */
+    .phone { --bg: #eef1f8; --surface: #fff; --surface-2: #e8ecf6; --text: #0b1533; --muted: #56607a; --border: #d9deea;
+      --accent: #1d3fd1; --accent-ink: #fff; --accent-text: #1d3fd1; --navy: #0b1533; --yellow: #ffd400; --alert: #e11d48;
+      max-width: 390px; margin: 0 auto; border-radius: 22px; overflow: hidden; border: 1px solid var(--border); background: var(--bg); color: var(--text);
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif; box-shadow: 0 8px 28px rgba(0,0,0,.12); }
+    [data-mode="dark"] .phone { --bg: #080d1f; --surface: #111a36; --surface-2: #18234a; --text: #e8ecfa; --muted: #9aa5c4; --border: #24305a;
+      --accent: #6d88ff; --accent-ink: #080d1f; --accent-text: #8aa0ff; --navy: #050914; --alert: #ff6b81; }
+    .phone * { font-family: inherit; }
+    .hdr { background: var(--navy); color: #fff; padding: 14px 14px 12px; }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand h3 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -.02em; }
+    .brand p { margin: 0; font-size: 12px; color: rgba(255,255,255,.7); }
+    .label { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; margin: 12px 0 6px; display: flex; align-items: center; gap: 6px; }
+    .row { display: flex; gap: 8px; }
+    .field { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 10px; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .btn { padding: 10px 12px; border-radius: 10px; font-weight: 700; font-size: 14px; white-space: nowrap; }
+    .status { font-size: 12.5px; margin-top: 7px; }
+    .tabs { display: flex; gap: 2px; padding: 0 8px; overflow: hidden; }
+    .tab { padding: 11px 8px; font-size: 13.5px; font-weight: 600; border-bottom: 3px solid transparent; white-space: nowrap; }
+    .search { padding: 12px 14px 14px; }
+    .chips { display: flex; gap: 6px; margin-top: 10px; overflow: hidden; }
+    .chip { padding: 5px 11px; border-radius: 999px; font-size: 13px; white-space: nowrap; }
+    .body { padding: 12px 14px 16px; }
+    .card { border-radius: 10px; height: 92px; background: var(--surface); border: 1px solid var(--border); display: flex; gap: 10px; padding: 10px; }
+    .card i { width: 70px; border-radius: 8px; background: var(--surface-2); }
+    .card b { display: block; font-size: 13.5px; }
+    .tag { display: inline-block; margin-top: 8px; background: var(--yellow); color: #0b1533; font-weight: 800; padding: 1px 8px; border-radius: 6px; transform: rotate(-2deg); }
+
+    /* location field on the dark header (shared) */
+    .hdr .field { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2); color: #fff; }
+    .hdr .btn { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2); color: #fff; }
+    .hdr .status { color: rgba(255,255,255,.7); }
+    .hdr .label { color: rgba(255,255,255,.65); }
+
+    /* Today (for reference) */
+    .v0 .tabs { background: var(--surface); border-bottom: 1px solid var(--border); }
+    .v0 .tab { color: var(--muted); } .v0 .tab.on { color: var(--accent-text); border-bottom-color: var(--accent); }
+    .v0 .search .field { background: var(--surface); border: 1px solid var(--border); color: var(--muted); }
+    .v0 .search .btn { background: var(--accent); color: var(--accent-ink); }
+    .v0 .chip { background: var(--surface); border: 1px solid var(--border); }
+    .v0 .label { display: none; }
+
+    /* A: yellow search band */
+    .v1 .tabs { background: var(--surface); border-bottom: 1px solid var(--border); }
+    .v1 .tab { color: var(--muted); } .v1 .tab.on { color: var(--accent-text); border-bottom-color: var(--accent); }
+    .v1 .search { background: var(--yellow); color: #0b1533; }
+    .v1 .search .label { margin-top: 0; color: #0b1533; }
+    .v1 .search .field { background: #fff; border: 2px solid #0b1533; color: #56607a; }
+    .v1 .search .btn { background: #0b1533; color: #fff; }
+    .v1 .chip { background: rgba(255,255,255,.65); border: 1px solid rgba(11,21,51,.15); color: #0b1533; }
+
+    /* B: light search card lifted off the page */
+    .v2 .hdr { padding-bottom: 26px; }
+    .v2 .tabs { background: transparent; }
+    .v2 .tab { color: var(--muted); } .v2 .tab.on { color: var(--accent-text); border-bottom-color: var(--accent); }
+    .v2 .search { margin: -16px 12px 0; background: var(--surface); border-radius: 16px; box-shadow: 0 8px 24px rgba(11,21,51,.18); border: 1px solid var(--border); position: relative; }
+    .v2 .search .label { margin-top: 0; color: var(--accent-text); }
+    .v2 .search .field { background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); }
+    .v2 .search .btn { background: var(--accent); color: var(--accent-ink); }
+    .v2 .chip { background: var(--surface-2); border: 1px solid var(--border); }
+    .v2 .tabs { order: 3; }
+    .v2 .stack { display: flex; flex-direction: column; }
+
+    /* C: royal-blue search band under the navy header */
+    .v3 .tabs { background: var(--navy); border-bottom: 1px solid rgba(255,255,255,.12); }
+    .v3 .tab { color: rgba(255,255,255,.65); } .v3 .tab.on { color: var(--yellow); border-bottom-color: var(--yellow); }
+    .v3 .search { background: #1d3fd1; color: #fff; }
+    [data-mode="dark"] .v3 .search { background: #233a9e; }
+    .v3 .search .label { margin-top: 0; color: rgba(255,255,255,.8); }
+    .v3 .search .field { background: #fff; border: 0; color: #56607a; }
+    .v3 .search .btn { background: var(--yellow); color: #0b1533; }
+    .v3 .chip { background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.25); color: #fff; }
+  </style>
+</head>
+<body>
+  <section class="intro">
+    <h1>Separating “where” from “what” – sketches</h1>
+    <p>Today the address and the product search sit on similar dark fields. Each sketch gives the product search its own colour and adds small labels. The address line under the field is also shortened. Nothing on the live site has changed.</p>
+    <div class="seg" role="group" aria-label="Colour mode">
+      <button type="button" data-mode-btn="light">Light</button>
+      <button type="button" data-mode-btn="dark">Dark</button>
+    </div>
+  </section>
+  <main class="options" id="options"></main>
+
+  <script>
+    const OPTIONS = [
+      { cls: 'v0', name: 'Today', desc: 'For comparison: address and search both look like grey/dark fields, so the eye doesn\'t know where one ends and the other starts.' },
+      { cls: 'v1', name: 'A · Yellow search band', desc: 'The product search sits on a yellow band – the same yellow as the price tags. Strongest separation; the search becomes the obvious “main action”.' },
+      { cls: 'v2', name: 'B · Floating search card', desc: 'The search is a light card that overlaps the dark header, like a booking site. Calm and modern, separation through shape and shadow.' },
+      { cls: 'v3', name: 'C · Blue search band', desc: 'Navy for the address, royal blue for the search, yellow Search button and tab marker. Clear separation while staying in the blue family.' },
+    ];
+    const logo = '<svg width="34" height="34" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#ffd400"/><path d="M14 30V16a2 2 0 0 1 2-2h14l20 20-16 16z" fill="#0b1533"/><circle cx="22" cy="22" r="4" fill="#ffd400"/></svg>';
+    const phone = (o) => `<div class="phone ${o.cls}"><div class="stack">
+      <div class="hdr">
+        <div class="brand">${logo}<div><h3>Tilbud Radar</h3><p>Every Danish supermarket offer this week, near you</p></div></div>
+        <div class="label">📍 Shopping near</div>
+        <div class="row"><div class="field">${o.cls === 'v0' ? 'Classensgade, Østervold, Østerbro, København,' : 'Classensgade, Østerbro'}</div><div class="btn">📍 Me</div><div class="btn">5 km ▾</div></div>
+        <div class="status">${o.cls === 'v0' ? '📍 Classensgade, Østervold, Østerbro, København, Københavns Kommune, Region Hovedstaden, 1327, Danmark · within 5 km · 61 catalogs nearby' : 'Within 5 km · 61 catalogs nearby'}</div>
+      </div>
+      <div class="tabs"><span class="tab on">🔍 Compare prices</span><span class="tab">🏷️ All deals</span><span class="tab">📰 Catalogs</span></div>
+      <div class="search">
+        <div class="label">🔍 Find a product</div>
+        <div class="row"><div class="field">Search in English or Danish, e.g. cheese…</div><div class="btn">Search</div></div>
+        <div class="chips"><span class="chip">☕ Coffee</span><span class="chip">🥛 Milk</span><span class="chip">🧈 Butter</span><span class="chip">🥚 Eggs</span></div>
+      </div></div>
+      <div class="body"><div class="card"><i></i><div><b>Gevalia Kaffe 400 g</b><span style="font-size:12px;color:var(--muted)">Netto · Valid 2–9 Oct</span><br><span class="tag">35,00 kr.</span></div></div></div>
+    </div>`;
+    document.getElementById('options').innerHTML = OPTIONS.map((o) => `<section class="option"><h2>${o.name}</h2><p>${o.desc}</p>${phone(o)}</section>`).join('');
+    function setMode(mode) {
+      document.body.dataset.mode = mode;
+      document.documentElement.dataset.theme = mode;
+      document.querySelectorAll('[data-mode-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.modeBtn === mode)));
+    }
+    document.querySelectorAll('[data-mode-btn]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.modeBtn)));
+    setMode(matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  </script>
+</body>
+</html>
