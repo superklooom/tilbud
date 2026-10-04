@@ -21,6 +21,7 @@
       </div>
     </div>
 
+    <div class="section-label">📍 Shopping near</div>
     <form id="locationForm" class="location" autocomplete="off">
       <div class="location__field">
         <input id="addressInput" type="text" placeholder="Address, postcode, coordinates or a maps link…" aria-label="Address" />
@@ -49,12 +50,15 @@
   <main>
     <!-- Compare -->
     <section id="tab-compare" class="panel is-active">
-      <form id="searchForm" class="searchbar">
-        <div class="ac"><input id="searchInput" type="search" placeholder="Search in English or Danish, e.g. cheese, ost, Coca-Cola…" /></div>
-        <button class="btn" type="submit">Search</button>
-        <button class="btn btn--ghost" type="button" id="clearSearch" hidden>✕ Clear</button>
-      </form>
-      <div id="quickChips" class="chips"></div>
+      <div class="search-band">
+        <div class="section-label">🔍 Find a product</div>
+        <form id="searchForm" class="searchbar">
+          <div class="ac"><input id="searchInput" type="search" placeholder="Search in English or Danish, e.g. cheese, ost, Coca-Cola…" /></div>
+          <button class="btn" type="submit">Search</button>
+          <button class="btn btn--ghost" type="button" id="clearSearch" hidden>✕ Clear</button>
+        </form>
+        <div id="quickChips" class="chips"></div>
+      </div>
       <div class="toolbar">
         <label>Sort:
           <select id="compareSort">

@@ -101,6 +101,10 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1p
 .topbar .btn--ghost { background: rgba(255, 255, 255, .1); border-color: rgba(255, 255, 255, .18); color: var(--header-ink); }
 .topbar input:focus, .topbar select:focus { outline-color: #ffd400; }
 
+/* small section labels: "Shopping near" / "Find a product" */
+.section-label { max-width: 1200px; margin: 0 auto 6px; font-size: 11.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.topbar .section-label { color: var(--header-muted); }
+
 .location { display: flex; gap: 8px; max-width: 1200px; margin: 0 auto; flex-wrap: wrap; }
 .location__field { position: relative; flex: 1 1 260px; }
 .location__field input { width: 100%; }
@@ -132,6 +136,20 @@ main { max-width: 1200px; margin: 0 auto; padding: 16px; }
 .panel.is-active { display: block; }
 
 .searchbar { display: flex; gap: 8px; margin-bottom: 12px; }
+
+/* product search on a yellow band, so it reads as separate from the location header */
+.search-band { background: #ffd400; color: #0b1533; border-radius: 14px; padding: 14px 16px 12px; margin-bottom: 14px; }
+.search-band .section-label { margin: 0 0 8px; color: #0b1533; }
+.search-band .searchbar { margin-bottom: 10px; }
+.search-band input[type="search"] { background: #fff; color: #0b1533; border: 2px solid #0b1533; }
+.search-band input::placeholder { color: #56607a; }
+.search-band input:focus { outline: 3px solid rgba(11, 21, 51, .35); outline-offset: 0; }
+.search-band .btn { background: #0b1533; color: #fff; }
+.search-band .btn--ghost { background: rgba(255, 255, 255, .6); color: #0b1533; border: 1px solid rgba(11, 21, 51, .25); }
+.search-band .chips { margin: 0; }
+.search-band .chip { background: rgba(255, 255, 255, .65); border-color: rgba(11, 21, 51, .15); color: #0b1533; }
+.search-band .chip:hover { border-color: #0b1533; }
+.search-band .chip.is-active { background: #0b1533; color: #fff; border-color: #0b1533; }
 .searchbar input { flex: 1; }
 .ac { position: relative; flex: 1; min-width: 0; display: flex; }
 .ac input { flex: 1; width: 100%; }
@@ -300,4 +318,8 @@ tfoot td { font-weight: 700; }
   .basket-summary { top: 44px; flex-wrap: nowrap; padding: 12px 14px; }
   #basketClear, #basketShare { padding: 6px 10px; font-size: 13px; }
   .basket-summary__actions { flex-direction: column; }
+}
+
+@media (max-width: 560px) {
+  .search-band { margin: -16px -16px 14px; border-radius: 0; padding: 12px 16px; }
 }

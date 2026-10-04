@@ -41,3 +41,18 @@ test('normOffer maps a Tjek offer', () => {
   assert.equal(o.dealer.name, 'Netto');
   assert.equal(o.catalogPage, 3);
 });
+
+import { shortAddress, shortLabel } from '../public/core.js';
+
+test('short address from Nominatim address details', () => {
+  assert.equal(shortAddress({ address: { road: 'Classensgade', house_number: '12', suburb: 'Østerbro', city: 'København' } }), 'Classensgade 12, Østerbro');
+  assert.equal(shortAddress({ address: { road: 'Vestergade', town: 'Silkeborg' } }), 'Vestergade, Silkeborg');
+  assert.equal(shortAddress({ address: { postcode: '8000', city: 'Aarhus' } }), '8000, Aarhus');
+});
+
+test('short label falls back to the first parts of a long address', () => {
+  assert.equal(shortLabel('Classensgade, Østervold, Østerbro, København, Københavns Kommune, Region Hovedstaden, 1327, Danmark'), 'Classensgade, Østervold');
+  assert.equal(shortLabel('12, Classensgade, Østerbro, København'), 'Classensgade 12, Østerbro');
+  assert.equal(shortLabel('Istedgade 1, København'), 'Istedgade 1, København');
+  assert.equal(shortAddress({ display_name: 'Nørrebrogade, Nørrebro, København, Danmark' }), 'Nørrebrogade, Nørrebro');
+});

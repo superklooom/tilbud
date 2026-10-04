@@ -110,6 +110,26 @@ export function normStore(s) {
   };
 }
 
+// ---------- addresses ----------
+// "Classensgade, Østervold, Østerbro, København, …, 1327, Danmark" -> "Classensgade, Østervold".
+export function shortLabel(label) {
+  const parts = String(label || '').split(',').map((s) => s.trim()).filter(Boolean);
+  if (/^\d+\s?[a-zA-Z]?$/.test(parts[0] || '') && parts[1]) parts.splice(0, 2, `${parts[1]} ${parts[0]}`); // "12, Vej" -> "Vej 12"
+  return parts.slice(0, 2).join(', ');
+}
+
+// Street + house number and neighbourhood from Nominatim's address details: "Classensgade 12, Østerbro".
+export function shortAddress(r) {
+  const a = r?.address;
+  if (a) {
+    const street = [a.road || a.pedestrian || a.square || a.hamlet, a.house_number].filter(Boolean).join(' ');
+    const area = a.suburb || a.city_district || a.quarter || a.neighbourhood || a.city || a.town || a.village || a.municipality;
+    const label = [street || a.postcode, area].filter((x, i, all) => x && all.indexOf(x) === i).join(', ');
+    if (label) return label;
+  }
+  return shortLabel(r?.display_name);
+}
+
 // ---------- API ----------
 function geo(q) {
   const lat = Number(q.get('lat'));
@@ -144,16 +164,16 @@ export function createApi({ fetchJson, tjekBase = DEFAULT_TJEK_BASE, apiKey = ''
       const text = (q.get('q') || '').trim();
       if (!text) return [];
       const url = new URL('https://nominatim.openstreetmap.org/search');
-      url.search = new URLSearchParams({ q: text, format: 'jsonv2', countrycodes: 'dk', limit: '6', addressdetails: '0', 'accept-language': 'da' });
+      url.search = new URLSearchParams({ q: text, format: 'jsonv2', countrycodes: 'dk', limit: '6', addressdetails: '1', 'accept-language': 'da' });
       const rows = await cached(url.toString(), () => fetchJson(url));
-      return rows.map((r) => ({ label: r.display_name, lat: Number(r.lat), lng: Number(r.lon) }));
+      return rows.map((r) => ({ label: shortAddress(r), full: r.display_name, lat: Number(r.lat), lng: Number(r.lon) }));
     },
 
     async reverse(q) {
       const url = new URL('https://nominatim.openstreetmap.org/reverse');
-      url.search = new URLSearchParams({ lat: q.get('lat'), lon: q.get('lng'), format: 'jsonv2', zoom: '17', 'accept-language': 'da' });
+      url.search = new URLSearchParams({ lat: q.get('lat'), lon: q.get('lng'), format: 'jsonv2', zoom: '17', addressdetails: '1', 'accept-language': 'da' });
       const r = await cached(url.toString(), () => fetchJson(url));
-      return { label: r.display_name || `${q.get('lat')}, ${q.get('lng')}` };
+      return { label: shortAddress(r) || `${q.get('lat')}, ${q.get('lng')}`, full: r.display_name || '' };
     },
 
     async search(q) {

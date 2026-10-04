@@ -1,7 +1,7 @@
 // Tilbud Radar – frontend (vanilla JS, no build step).
 // Works as a static site (GitHub Pages) by calling the Tjek API directly from the browser,
 // or through server.js's /api proxy when that is available.
-import { createApi } from './core.js';
+import { createApi, shortLabel } from './core.js';
 import { BRANDS, DA_TERMS, EN_TO_DA, englishFor, fold } from './dictionary.js';
 import { danishFor, knownDanish } from './translate.js';
 import { relevance, TIER } from './relevance.js';
@@ -189,7 +189,7 @@ function dealerChips(container, offers, selected, onChange) {
 async function setLocation(loc, { silent = false } = {}) {
   state.loc = { radius: Number($('#radiusSelect').value), ...state.loc, ...loc };
   $('#radiusSelect').value = String(state.loc.radius);
-  if (state.loc.label) $('#addressInput').value = state.loc.label;
+  if (state.loc.label) $('#addressInput').value = shortLabel(state.loc.label); // also tidies labels saved before
   saveJson(LS_LOC, state.loc);
   updateStatus();
 
@@ -206,7 +206,7 @@ function updateStatus(extra = '') {
     return;
   }
   const km = state.loc.radius / 1000;
-  $('#locationStatus').textContent = `📍 ${state.loc.label || `${state.loc.lat.toFixed(4)}, ${state.loc.lng.toFixed(4)}`} · within ${km} km ${extra}`;
+  $('#locationStatus').textContent = `Within ${km} km ${extra}`.trim(); // the address itself is in the field above
 }
 
 async function loadArea() {
@@ -250,7 +250,7 @@ function initLocation() {
       try {
         rows = await api('/api/geocode', { q: text });
         if (input.value.trim() !== text || document.activeElement !== input) return;
-        list.innerHTML = rows.map((r, i) => `<li data-i="${i}">${esc(r.label)}</li>`).join('');
+        list.innerHTML = rows.map((r, i) => `<li data-i="${i}">${esc(r.full || r.label)}</li>`).join(''); // full address to tell places apart
         list.hidden = !rows.length;
       } catch { hide(); }
     }, 450);
